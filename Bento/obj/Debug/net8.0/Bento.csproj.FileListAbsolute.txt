@@ -1,0 +1,11 @@
+/Users/zero/Documents/git/bento-dotnet-sdk/Bento/bin/Debug/net8.0/Bento.deps.json
+/Users/zero/Documents/git/bento-dotnet-sdk/Bento/bin/Debug/net8.0/Bento.dll
+/Users/zero/Documents/git/bento-dotnet-sdk/Bento/bin/Debug/net8.0/Bento.pdb
+/Users/zero/Documents/git/bento-dotnet-sdk/Bento/obj/Debug/net8.0/Bento.GeneratedMSBuildEditorConfig.editorconfig
+/Users/zero/Documents/git/bento-dotnet-sdk/Bento/obj/Debug/net8.0/Bento.AssemblyInfoInputs.cache
+/Users/zero/Documents/git/bento-dotnet-sdk/Bento/obj/Debug/net8.0/Bento.AssemblyInfo.cs
+/Users/zero/Documents/git/bento-dotnet-sdk/Bento/obj/Debug/net8.0/Bento.csproj.CoreCompileInputs.cache
+/Users/zero/Documents/git/bento-dotnet-sdk/Bento/obj/Debug/net8.0/Bento.dll
+/Users/zero/Documents/git/bento-dotnet-sdk/Bento/obj/Debug/net8.0/refint/Bento.dll
+/Users/zero/Documents/git/bento-dotnet-sdk/Bento/obj/Debug/net8.0/Bento.pdb
+/Users/zero/Documents/git/bento-dotnet-sdk/Bento/obj/Debug/net8.0/ref/Bento.dll
