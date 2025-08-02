@@ -17,11 +17,13 @@ dotnet add package Bento.SDK
 ```
 
 Or install a specific version:
+
 ```bash
 dotnet add package Bento.SDK --version 1.0.1
 ```
 
 Or via Package Manager Console in Visual Studio:
+
 ```powershell
 Install-Package Bento.SDK
 ```
@@ -29,7 +31,7 @@ Install-Package Bento.SDK
 #### Option 2: Download DLL
 
 1. Download the latest release from [GitHub Releases](https://github.com/bentonow/bento-dotnet-sdk/releases)
-2. Extract the ZIP file containing the SDK  
+2. Extract the ZIP file containing the SDK
 3. Add a reference to the SDK in your project file (.csproj):
 
 > [!TIP]
@@ -39,15 +41,17 @@ The Bento .NET SDK makes it quick and easy to send emails and track events in yo
 
 Get started with our [📚 integration guides](https://docs.bentonow.com), or [📘 browse the SDK reference](https://docs.bentonow.com/subscribers).
 
-Table of Contents
-=================
+# Table of Contents
 
 - [Bento .NET SDK](#bento-net-sdk)
+    - [Installation](#installation)
+      - [Option 1: NuGet Package (Recommended)](#option-1-nuget-package-recommended)
+      - [Option 2: Download DLL](#option-2-download-dll)
 - [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Requirements](#requirements)
   - [Getting started](#getting-started)
-    - [Installation](#installation)
+    - [Installation](#installation-1)
     - [Configuration](#configuration)
   - [Usage](#usage)
     - [Event Tracking](#event-tracking)
@@ -66,16 +70,16 @@ Table of Contents
 
 ## Features
 
-* **Event Tracking**: Easily track custom events and user behavior in your .NET application
-* **Email Integration**: Send transactional emails via Bento
-* **Subscriber Management**: Import and manage subscribers directly from your .NET app
-* **API Access**: Full access to Bento's REST API for advanced operations
-* **.NET-friendly**: Designed to work smoothly with .NET conventions and best practices
+-   **Event Tracking**: Easily track custom events and user behavior in your .NET application
+-   **Email Integration**: Send transactional emails via Bento
+-   **Subscriber Management**: Import and manage subscribers directly from your .NET app
+-   **API Access**: Full access to Bento's REST API for advanced operations
+-   **.NET-friendly**: Designed to work smoothly with .NET conventions and best practices
 
 ## Requirements
 
-- .NET 8.0+
-- Bento API Keys
+-   .NET 8.0+
+-   Bento API Keys
 
 ## Getting started
 
@@ -92,6 +96,7 @@ dotnet add package Bento.SDK
 ```
 
 Or via Package Manager Console in Visual Studio:
+
 ```powershell
 Install-Package Bento.SDK
 ```
@@ -112,18 +117,17 @@ Install-Package Bento.SDK
 
 Alternatively, you can add the reference through Visual Studio.
 
-
 ### Configuration
 
 1. Add the Bento configuration section to your appsettings.json:
 
 ```json
 {
-  "Bento": {
-    "PublishableKey": "bento-publishable-key",
-    "SecretKey": "bento-secret-key",
-    "SiteUuid": "bento-site-uuid"
-  }
+    "Bento": {
+        "PublishableKey": "bento-publishable-key",
+        "SecretKey": "bento-secret-key",
+        "SiteUuid": "bento-site-uuid"
+    }
 }
 ```
 
@@ -466,6 +470,7 @@ To run the examples:
 1. Clone the repository
 2. Add your Bento credentials to `Bento.Examples/appsettings.json`
 3. Run the example project:
+
 ```bash
 cd Bento.Examples
 dotnet run
