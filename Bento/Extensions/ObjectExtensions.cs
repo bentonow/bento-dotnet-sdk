@@ -1,6 +1,9 @@
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Bento.Extensions;
 
-public static class ObjectExtensions 
+public static class ObjectExtensions
 {
     public static Dictionary<string, string?> ToDictionary(this object obj)
     {

@@ -7,14 +7,14 @@ namespace Bento.Extensions;
 public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddBentoClient(
-        this IServiceCollection services, 
+        this IServiceCollection services,
         IConfiguration configuration)
     {
         services.Configure<BentoOptions>(
             configuration.GetSection(BentoOptions.SectionName));
 
         services.AddHttpClient<IBentoClient, BentoClient>();
-        
+
         // Register all Bento services
         services.AddScoped<IBentoEventService, BentoEventService>();
         services.AddScoped<IBentoSubscriberService, BentoSubscriberService>();
@@ -29,7 +29,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBentoModerationService, BentoModerationService>();
         services.AddScoped<IBentoGenderService, BentoGenderService>();
         services.AddScoped<IBentoGeolocationService, BentoGeolocationService>();
-        
+
         return services;
     }
 }

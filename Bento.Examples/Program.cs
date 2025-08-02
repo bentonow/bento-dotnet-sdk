@@ -1,5 +1,4 @@
 ﻿using Bento.Extensions;
-using Bento.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -15,10 +14,10 @@ public class Program
             .Build();
 
         var services = new ServiceCollection();
-        
+
         // Register all Bento services
         services.AddBentoClient(configuration);
-        
+
         // Register the example service
         services.AddScoped<BentoExampleService>();
 

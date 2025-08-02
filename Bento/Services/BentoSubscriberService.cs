@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Bento.Models;
 
 namespace Bento.Services;
@@ -36,7 +39,7 @@ public class BentoSubscriberService : IBentoSubscriberService
                 fields = s.Fields
             })
         };
-        
+
         return _client.PostAsync<T>("batch/subscribers", request);
     }
 }
