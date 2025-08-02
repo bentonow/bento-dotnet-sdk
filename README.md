@@ -6,9 +6,9 @@
 
 <img align="right" src="https://app.bentonow.com/brand/logoanim.gif">
 
-### Installation
+## Installation
 
-#### Option 1: NuGet Package (Recommended)
+### Option 1: NuGet Package (Recommended)
 
 Install the SDK via NuGet Package Manager:
 
@@ -28,11 +28,21 @@ Or via Package Manager Console in Visual Studio:
 Install-Package Bento.SDK
 ```
 
-#### Option 2: Download DLL
+### Option 2: Download DLL
 
 1. Download the latest release from [GitHub Releases](https://github.com/bentonow/bento-dotnet-sdk/releases)
 2. Extract the ZIP file containing the SDK
 3. Add a reference to the SDK in your project file (.csproj):
+
+```xml
+<ItemGroup>
+    <Reference Include="Bento">
+        <HintPath>path/to/extracted/zip/Bento.dll</HintPath>
+    </Reference>
+</ItemGroup>
+```
+
+Alternatively, you can add the reference through Visual Studio.
 
 > [!TIP]
 > Need help? Join our [Discord](https://discord.gg/ssXXFRmt5F) or email jesse@bentonow.com for personalized support.
@@ -44,14 +54,12 @@ Get started with our [ðŸ“š integration guides](https://docs.bentonow.com), or [ð
 # Table of Contents
 
 - [Bento .NET SDK](#bento-net-sdk)
-    - [Installation](#installation)
-      - [Option 1: NuGet Package (Recommended)](#option-1-nuget-package-recommended)
-      - [Option 2: Download DLL](#option-2-download-dll)
-- [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+    - [Option 1: NuGet Package (Recommended)](#option-1-nuget-package-recommended)
+    - [Option 2: Download DLL](#option-2-download-dll)
   - [Features](#features)
   - [Requirements](#requirements)
   - [Getting started](#getting-started)
-    - [Installation](#installation-1)
     - [Configuration](#configuration)
   - [Usage](#usage)
     - [Event Tracking](#event-tracking)
@@ -82,40 +90,6 @@ Get started with our [ðŸ“š integration guides](https://docs.bentonow.com), or [ð
 -   Bento API Keys
 
 ## Getting started
-
-[Previous content remains the same until Installation section]
-
-### Installation
-
-**Option 1: NuGet Package (Recommended)**
-
-Install the SDK via NuGet Package Manager:
-
-```bash
-dotnet add package Bento.SDK
-```
-
-Or via Package Manager Console in Visual Studio:
-
-```powershell
-Install-Package Bento.SDK
-```
-
-**Option 2: Download DLL**
-
-1. Download the latest release from [GitHub Releases](https://github.com/bentonow/bento-dotnet-sdk/releases)
-2. Extract the ZIP file containing the SDK
-3. Add a reference to the SDK in your project file (.csproj):
-
-```xml
-<ItemGroup>
-    <Reference Include="Bento">
-        <HintPath>path/to/extracted/zip/Bento.dll</HintPath>
-    </Reference>
-</ItemGroup>
-```
-
-Alternatively, you can add the reference through Visual Studio.
 
 ### Configuration
 
