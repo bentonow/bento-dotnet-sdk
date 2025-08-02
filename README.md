@@ -1,10 +1,10 @@
 # Bento .NET SDK
 
+<img align="right" src="https://app.bentonow.com/brand/logoanim.gif">
+
 [![NuGet Version](https://img.shields.io/nuget/v/Bento.SDK.svg)](https://www.nuget.org/packages/Bento.SDK/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Bento.SDK.svg)](https://www.nuget.org/packages/Bento.SDK/)
 [![GitHub Release](https://img.shields.io/github/release/bentonow/bento-dotnet-sdk.svg)](https://github.com/bentonow/bento-dotnet-sdk/releases)
-
-<img align="right" src="https://app.bentonow.com/brand/logoanim.gif">
 
 ## Installation
 
@@ -57,6 +57,7 @@ Get started with our [ðŸ“š integration guides](https://docs.bentonow.com), or [ð
   - [Installation](#installation)
     - [Option 1: NuGet Package (Recommended)](#option-1-nuget-package-recommended)
     - [Option 2: Download DLL](#option-2-download-dll)
+- [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Requirements](#requirements)
   - [Getting started](#getting-started)

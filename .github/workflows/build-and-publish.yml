@@ -57,10 +57,12 @@ jobs:
             ./artifacts/Bento.deps.json
           retention-days: 30
 
-  package-and-release:
+  package-and-github-release:
     runs-on: ubuntu-latest
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     
     steps:
       - name: Checkout code
@@ -91,13 +93,24 @@ jobs:
           echo "Updating project file with version: $VERSION"
           echo "Using clean version for assemblies: $CLEAN_VERSION"
           
-          # Replace version 1.0.0 with actual version from tag
-          sed -i "s/<Version>1\.0\.0<\/Version>/<Version>$VERSION<\/Version>/" Bento/Bento.csproj
-          sed -i "s/<AssemblyVersion>1\.0\.0\.0<\/AssemblyVersion>/<AssemblyVersion>$CLEAN_VERSION.0<\/AssemblyVersion>/" Bento/Bento.csproj
-          sed -i "s/<FileVersion>1\.0\.0\.0<\/FileVersion>/<FileVersion>$CLEAN_VERSION.0<\/FileVersion>/" Bento/Bento.csproj
+          # Install xmlstarlet for XML manipulation
+          sudo apt-get update && sudo apt-get install -y xmlstarlet
+          
+          # Backup original file
+          cp Bento/Bento.csproj Bento/Bento.csproj.backup
+          
+          # Update versions using xmlstarlet (XML-aware tool)
+          xmlstarlet ed -L \
+            -u "//Version" -v "$VERSION" \
+            -u "//AssemblyVersion" -v "$CLEAN_VERSION.0" \
+            -u "//FileVersion" -v "$CLEAN_VERSION.0" \
+            Bento/Bento.csproj
           
           echo "Project file updated successfully:"
-          grep -E "(Version|AssemblyVersion|FileVersion)" Bento/Bento.csproj
+          echo "Before:"
+          grep -E "(Version|AssemblyVersion|FileVersion)" Bento/Bento.csproj.backup || echo "No version elements found in backup"
+          echo "After:"
+          grep -E "(Version|AssemblyVersion|FileVersion)" Bento/Bento.csproj || echo "No version elements found"
           
       - name: Restore dependencies
         run: dotnet restore
@@ -154,11 +167,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Publish to NuGet.org
-        run: dotnet nuget push packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-          
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -172,3 +180,33 @@ jobs:
           name: bento-sdk-nuget-${{ steps.version.outputs.version }}
           path: ./packages/*.nupkg
           retention-days: 90
+
+  publish-to-nuget:
+    runs-on: ubuntu-latest
+    needs: package-and-github-release
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
+    environment: nuget-production  # Optional: requires manual approval
+    
+    steps:
+      - name: Download NuGet package
+        uses: actions/download-artifact@v4
+        with:
+          name: bento-sdk-nuget-${{ needs.package-and-github-release.outputs.version }}
+          path: ./packages/
+          
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
+          
+      - name: List packages to publish
+        run: |
+          echo "Packages to publish:"
+          ls -la ./packages/
+          
+      - name: Publish to NuGet.org
+        run: dotnet nuget push packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
