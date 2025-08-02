@@ -24,7 +24,12 @@ This document describes how to build the Bento .NET SDK and deploy releases.
 
 3. **Build specific project with output:**
    ```bash
-   dotnet build Bento/Bento.csproj --configuration Release --output ./artifacts
+   # Standard build to bin directory
+   dotnet build Bento/Bento.csproj --configuration Release
+   
+   # Copy artifacts to custom directory if needed
+   mkdir -p ./artifacts
+   cp Bento/bin/Release/net8.0/* ./artifacts/
    ```
 
 ### Running Tests
@@ -37,7 +42,9 @@ dotnet test --configuration Release --verbosity normal
 ### Creating NuGet Package
 
 ```bash
-dotnet pack Bento/Bento.csproj --configuration Release --output ./packages
+# Build first, then pack
+dotnet build Bento/Bento.csproj --configuration Release
+dotnet pack Bento/Bento.csproj --configuration Release --output ./packages --no-build
 ```
 
 ## Automated CI/CD
