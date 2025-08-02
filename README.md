@@ -1,4 +1,31 @@
 # Bento .NET SDK
+
+[![NuGet Version](https://img.shields.io/**Option 1: NuGet Package (Recommended)**
+
+Install the SDK via NuGet Package Manager:
+
+```bash
+dotnet add package Bento.SDK
+```
+
+Or install a specific version:
+```bash
+dotnet add package Bento.SDK --version 1.0.1
+```
+
+Or via Package Manager Console in Visual Studio:
+```powershell
+Install-Package Bento.SDK
+```
+
+**Option 2: Download DLL**
+
+1. Download the latest release from [GitHub Releases](https://github.com/bentonow/bento-dotnet-sdk/releases)
+2. Extract the ZIP file containing the SDK  
+3. Add a reference to the SDK in your project file (.csproj):svg)](https://www.nuget.org/packages/Bento.SDK/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Bento.SDK.svg)](https://www.nuget.org/packages/Bento.SDK/)
+[![GitHub Release](https://img.shields.io/github/release/bentonow/bento-dotnet-sdk.svg)](https://github.com/bentonow/bento-dotnet-sdk/releases)
+
 <img align="right" src="https://app.bentonow.com/brand/logoanim.gif">
 
 > [!TIP]
@@ -11,25 +38,27 @@ Get started with our [ðŸ“š integration guides](https://docs.bentonow.com), or [ð
 Table of Contents
 =================
 
-* [Features](#features)
-* [Requirements](#requirements)
-* [Getting Started](#getting-started)
-    * [Installation](#installation)
-    * [Configuration](#configuration)
-* [Usage](#usage)
-    * [Event Tracking](#event-tracking)
-    * [Subscriber Management](#subscriber-management)
-    * [Tag Management](#tag-management)
-    * [Field Management](#field-management)
-    * [Email Management](#email-management)
-    * [Broadcast Management](#broadcast-management)
-    * [Stats Management](#stats-management)
-    * [Command Management](#command-management)
-    * [Experimental Features](#experimental-features)
-* [Examples](#examples)
-* [Things to Know](#things-to-know)
-* [Contributing](#contributing)
-* [License](#license)
+- [Bento .NET SDK](#bento-net-sdk)
+- [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Requirements](#requirements)
+  - [Getting started](#getting-started)
+    - [Installation](#installation)
+    - [Configuration](#configuration)
+  - [Usage](#usage)
+    - [Event Tracking](#event-tracking)
+    - [Subscriber Management](#subscriber-management)
+    - [Tag Management](#tag-management)
+    - [Field Management](#field-management)
+    - [Email Management](#email-management)
+    - [Broadcast Management](#broadcast-management)
+    - [Stats Management](#stats-management)
+    - [Command Management](#command-management)
+    - [Experimental Features](#experimental-features)
+  - [Examples](#examples)
+  - [Things to Know](#things-to-know)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Features
 
@@ -50,8 +79,25 @@ Table of Contents
 
 ### Installation
 
-1. Download and extract the ZIP file containing the SDK
-2. Add a reference to the SDK in your project file (.csproj):
+**Option 1: NuGet Package (Recommended)**
+
+Install the SDK via NuGet Package Manager:
+
+```bash
+dotnet add package Bento.SDK
+```
+
+Or via Package Manager Console in Visual Studio:
+```powershell
+Install-Package Bento.SDK
+```
+
+**Option 2: Download DLL**
+
+1. Download the latest release from [GitHub Releases](https://github.com/bentonow/bento-dotnet-sdk/releases)
+2. Extract the ZIP file containing the SDK
+3. Add a reference to the SDK in your project file (.csproj):
+
 ```xml
 <ItemGroup>
     <Reference Include="Bento">
@@ -423,12 +469,13 @@ dotnet run
 
 ## Things to Know
 
-1. The SDK uses .NET's HttpClient factory pattern for optimal performance
-2. All API requests return a `BentoResponse<T>` with standardized success/error handling
-3. The SDK supports .NET's dependency injection for easy integration
-4. All services are interface-based for easy testing and mocking
-5. The SDK supports asynchronous operations throughout
-6. For more advanced usage, refer to the [Bento API Documentation](https://docs.bentonow.com)
+1. **Installation**: The SDK is available via NuGet for easy installation and updates
+2. The SDK uses .NET's HttpClient factory pattern for optimal performance
+3. All API requests return a `BentoResponse<T>` with standardized success/error handling
+4. The SDK supports .NET's dependency injection for easy integration
+5. All services are interface-based for easy testing and mocking
+6. The SDK supports asynchronous operations throughout
+7. For more advanced usage, refer to the [Bento API Documentation](https://docs.bentonow.com)
 
 ## Contributing
 
