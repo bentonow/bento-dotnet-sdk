@@ -41,7 +41,7 @@ jobs:
       - name: Copy artifacts to directory
         run: |
           mkdir -p ./artifacts
-          cp Bento/bin/Release/net8.0/* ./artifacts/
+          cp Bento/bin/Release/netstandard2.1/* ./artifacts/
           echo "Copied build artifacts"
         
       - name: List artifacts directory
@@ -111,7 +111,7 @@ jobs:
       - name: Copy DLL artifacts to separate directory
         run: |
           mkdir -p ./release-artifacts
-          cp Bento/bin/Release/net8.0/* ./release-artifacts/
+          cp Bento/bin/Release/netstandard2.1/* ./release-artifacts/
           echo "Copied artifacts to release-artifacts directory"
         
       - name: List release artifacts
