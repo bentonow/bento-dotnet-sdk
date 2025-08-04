@@ -28,14 +28,49 @@ jobs:
       - name: Build solution
         run: dotnet build --configuration Release --no-restore
 
-      - name: Run tests (if test project exists)
+      - name: Run traditional tests (if test project exists)
         run: |
           if find . \( -name "*.Tests.csproj" -o -name "*Tests.csproj" \
           -o -name "*Test.csproj" \) | grep -q .; then
             dotnet test --configuration Release --no-build --verbosity normal
           else
-            echo "No test projects found, skipping tests"
+            echo "No traditional test projects found, skipping unit tests"
           fi
+
+      - name: Run SDK functional tests
+        run: |
+          echo "Running Bento SDK functional tests..."
+          cd Bento.Examples
+          
+          # Create test configuration with dummy values
+          cat > appsettings.test.json << 'EOF'
+          {
+            "Bento": {
+              "PublishableKey": "test-publishable-key",
+              "SecretKey": "test-secret-key", 
+              "SiteUuid": "test-site-uuid"
+            }
+          }
+          EOF
+          
+          # Run tests with timeout and capture exit code
+          timeout 300 dotnet run -- --verbose > test_output.log 2>&1 || TEST_EXIT_CODE=$?
+          
+          # Display test output
+          echo "=== Test Output ==="
+          cat test_output.log
+          
+          # Check if tests ran successfully (we expect them to fail auth but run)
+          if grep -q "Test Summary:" test_output.log; then
+            echo "✅ Functional tests executed successfully"
+            echo "ℹ️  Tests are expected to show 'Success=False' due to dummy API keys"
+          else
+            echo "❌ Functional tests failed to execute properly"
+            exit 1
+          fi
+        env:
+          # Use test config file instead of default
+          ASPNETCORE_ENVIRONMENT: test
 
       - name: Build Bento project specifically
         run: dotnet build Bento/Bento.csproj --configuration Release

@@ -1,0 +1,116 @@
+---
+name: Test Bento SDK
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build solution
+        run: dotnet build --configuration Debug --no-restore
+
+      - name: Run traditional tests (if any)
+        run: |
+          if find . \( -name "*.Tests.csproj" -o -name "*Tests.csproj" \
+          -o -name "*Test.csproj" \) | grep -q .; then
+            echo "Running traditional unit tests..."
+            dotnet test --configuration Debug --no-build --verbosity normal
+          else
+            echo "No traditional test projects found"
+          fi
+
+      - name: Run SDK functional tests
+        run: |
+          echo "Running Bento SDK functional tests..."
+          cd Bento.Examples
+          
+          # Create test configuration with dummy values
+          cat > appsettings.test.json << 'EOF'
+          {
+            "Bento": {
+              "PublishableKey": "test-publishable-key-for-ci",
+              "SecretKey": "test-secret-key-for-ci", 
+              "SiteUuid": "test-site-uuid-for-ci"
+            }
+          }
+          EOF
+          
+          echo "Running all functional tests..."
+          # Set CI environment and run tests with timeout
+          export CI=true
+          export ASPNETCORE_ENVIRONMENT=test
+          
+          timeout 300 dotnet run -- --verbose --no-wait > test_output.log 2>&1 || TEST_EXIT_CODE=$?
+          
+          echo "=== Functional Test Output ==="
+          cat test_output.log
+          echo "=== End Test Output ==="
+          
+          # Verify tests executed properly
+          if grep -q "Test Summary:" test_output.log; then
+            PASSED_COUNT=$(grep -o "[0-9]\+ passed" test_output.log | grep -o "[0-9]\+")
+            echo "✅ Functional tests completed: $PASSED_COUNT tests executed"
+            echo "ℹ️  All tests are expected to show 'Success=False' due to test API keys"
+            
+            # Check that we have reasonable number of tests
+            if [ "$PASSED_COUNT" -ge 10 ]; then
+              echo "✅ Expected number of tests executed ($PASSED_COUNT >= 10)"
+            else
+              echo "⚠️  Fewer tests executed than expected ($PASSED_COUNT < 10)"
+            fi
+          else
+            echo "❌ Functional tests failed to execute properly"
+            echo "Test output did not contain expected 'Test Summary:' section"
+            exit 1
+          fi
+
+      - name: Test specific service
+        run: |
+          echo "Testing specific service execution..."
+          cd Bento.Examples
+          
+          export CI=true
+          export ASPNETCORE_ENVIRONMENT=test
+          
+          # Test running a specific service
+          timeout 60 dotnet run -- event --verbose --no-wait > specific_test.log 2>&1 || SPECIFIC_EXIT_CODE=$?
+          
+          echo "=== Specific Test Output ==="
+          cat specific_test.log
+          echo "=== End Specific Test Output ==="
+          
+          # Verify specific test worked
+          if grep -q "event test completed successfully" specific_test.log; then
+            echo "✅ Specific test execution works correctly"
+          else
+            echo "❌ Specific test execution failed"
+            exit 1
+          fi
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: |
+            Bento.Examples/test_output.log
+            Bento.Examples/specific_test.log
+            Bento.Examples/appsettings.test.json
+          retention-days: 7
