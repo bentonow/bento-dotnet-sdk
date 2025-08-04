@@ -1,52 +1,54 @@
+---
 name: Build and Publish Bento SDK
 
-on:
+"on":
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
     tags:
       - 'v*.*.*'
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-          
+
       - name: Restore dependencies
         run: dotnet restore
-        
+
       - name: Build solution
         run: dotnet build --configuration Release --no-restore
-        
+
       - name: Run tests (if test project exists)
         run: |
-          if find . \( -name "*.Tests.csproj" -o -name "*Tests.csproj" -o -name "*Test.csproj" \) | grep -q .; then
+          if find . \( -name "*.Tests.csproj" -o -name "*Tests.csproj" \
+          -o -name "*Test.csproj" \) | grep -q .; then
             dotnet test --configuration Release --no-build --verbosity normal
           else
             echo "No test projects found, skipping tests"
           fi
-        
+
       - name: Build Bento project specifically
         run: dotnet build Bento/Bento.csproj --configuration Release
-        
+
       - name: Copy artifacts to directory
         run: |
           mkdir -p ./artifacts
           cp Bento/bin/Release/netstandard2.1/* ./artifacts/
           echo "Copied build artifacts"
-        
+
       - name: List artifacts directory
         run: ls -la ./artifacts/
-        
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -63,16 +65,16 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     outputs:
       version: ${{ steps.version.outputs.version }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-          
+
       - name: Extract version from tag
         id: version
         run: |
@@ -80,85 +82,95 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version extracted from tag: $VERSION"
-          
-          # Extract clean version without prerelease suffix for AssemblyVersion/FileVersion
+
+          # Extract clean version without prerelease suffix
+          # for AssemblyVersion/FileVersion
           CLEAN_VERSION=$(echo "$VERSION" | sed 's/-.*$//')
           echo "clean_version=$CLEAN_VERSION" >> $GITHUB_OUTPUT
           echo "Clean version for assemblies: $CLEAN_VERSION"
-          
+
       - name: Update version in project file
         run: |
           VERSION=${{ steps.version.outputs.version }}
           CLEAN_VERSION=${{ steps.version.outputs.clean_version }}
           echo "Updating project file with version: $VERSION"
           echo "Using clean version for assemblies: $CLEAN_VERSION"
-          
+
           # Install xmlstarlet for XML manipulation
           sudo apt-get update && sudo apt-get install -y xmlstarlet
-          
+
           # Backup original file
           cp Bento/Bento.csproj Bento/Bento.csproj.backup
-          
+
           # Update versions using xmlstarlet (XML-aware tool)
           xmlstarlet ed -L \
             -u "//Version" -v "$VERSION" \
             -u "//AssemblyVersion" -v "$CLEAN_VERSION.0" \
             -u "//FileVersion" -v "$CLEAN_VERSION.0" \
             Bento/Bento.csproj
-          
+
           echo "Project file updated successfully:"
           echo "Before:"
-          grep -E "(Version|AssemblyVersion|FileVersion)" Bento/Bento.csproj.backup || echo "No version elements found in backup"
+          grep -E "(Version|AssemblyVersion|FileVersion)" \
+            Bento/Bento.csproj.backup || echo "No version elements found"
           echo "After:"
-          grep -E "(Version|AssemblyVersion|FileVersion)" Bento/Bento.csproj || echo "No version elements found"
-          
+          grep -E "(Version|AssemblyVersion|FileVersion)" \
+            Bento/Bento.csproj || echo "No version elements found"
+
       - name: Restore dependencies
         run: dotnet restore
-          
+
       - name: Build release version
         run: dotnet build Bento/Bento.csproj --configuration Release
-        
+
       - name: Create NuGet package
-        run: dotnet pack Bento/Bento.csproj --configuration Release --output ./packages --no-build
-        
+        run: |
+          dotnet pack Bento/Bento.csproj --configuration Release \
+          --output ./packages --no-build
+
       - name: Copy DLL artifacts to separate directory
         run: |
           mkdir -p ./release-artifacts
           cp Bento/bin/Release/netstandard2.1/* ./release-artifacts/
           echo "Copied artifacts to release-artifacts directory"
-        
+
       - name: List release artifacts
         run: |
           echo "Release artifacts:"
           ls -la ./release-artifacts/
           echo "NuGet packages:"
           ls -la ./packages/
-          
+
       - name: Create release archive
         run: |
           cd release-artifacts
-          zip -r ../bento-sdk-${{ steps.version.outputs.version }}.zip Bento.dll Bento.pdb Bento.deps.json
+          zip -r ../bento-sdk-${{ steps.version.outputs.version }}.zip \
+            Bento.dll Bento.pdb Bento.deps.json
           cd ..
-          echo "Created archive: bento-sdk-${{ steps.version.outputs.version }}.zip"
+          echo "Created archive: bento-sdk-${{
+            steps.version.outputs.version }}.zip"
           ls -la bento-sdk-${{ steps.version.outputs.version }}.zip
-          
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "Bento SDK v${{ steps.version.outputs.version }}"
           body: |
             ## Bento .NET SDK v${{ steps.version.outputs.version }}
-            
+
             ### 📦 Downloads
-            - **DLL Package**: `bento-sdk-${{ steps.version.outputs.version }}.zip`
-            - **NuGet Package**: `Bento.SDK.${{ steps.version.outputs.version }}.nupkg`
-            
+            - **DLL Package**: `bento-sdk-${{
+              steps.version.outputs.version }}.zip`
+            - **NuGet Package**: `Bento.SDK.${{
+              steps.version.outputs.version }}.nupkg`
+
             ### 🚀 Installation
             ```bash
-            dotnet add package Bento.SDK --version ${{ steps.version.outputs.version }}
+            dotnet add package Bento.SDK \
+            --version ${{ steps.version.outputs.version }}
             ```
-            
-            Or download the DLL package and reference it directly in your project.
+
+            Or download the DLL package and reference it directly.
           files: |
             bento-sdk-${{ steps.version.outputs.version }}.zip
             packages/*.nupkg
@@ -166,14 +178,14 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: bento-sdk-release-${{ steps.version.outputs.version }}
           path: ./release-artifacts/
           retention-days: 90
-        
+
       - name: Upload NuGet package
         uses: actions/upload-artifact@v4
         with:
@@ -186,27 +198,31 @@ jobs:
     needs: package-and-github-release
     if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
     environment: nuget-production  # Optional: requires manual approval
-    
+
     steps:
       - name: Download NuGet package
         uses: actions/download-artifact@v4
         with:
-          name: bento-sdk-nuget-${{ needs.package-and-github-release.outputs.version }}
+          name: bento-sdk-nuget-${{
+            needs.package-and-github-release.outputs.version }}
           path: ./packages/
-          
+
       - name: Extract version from tag
         id: version
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing version: $VERSION"
-          
+
       - name: List packages to publish
         run: |
           echo "Packages to publish:"
           ls -la ./packages/
-          
+
       - name: Publish to NuGet.org
-        run: dotnet nuget push packages/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: |
+          dotnet nuget push packages/*.nupkg \
+          --api-key ${{ secrets.NUGET_API_KEY }} \
+          --source https://api.nuget.org/v3/index.json --skip-duplicate
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
