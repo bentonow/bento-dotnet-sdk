@@ -10,12 +10,15 @@
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
         <Authors>bentonow.com</Authors>
-        <Description>Bento .NET SDK for email marketing and automation</Description>
+        <Description>Bento .NET SDK for email marketing and automation. Includes comprehensive examples and documentation.</Description>
         <PackageProjectUrl>https://github.com/bentonow/bento-dotnet-sdk</PackageProjectUrl>
         <RepositoryUrl>https://github.com/bentonow/bento-dotnet-sdk</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageTags>bento;email;marketing;automation;sdk;dotnet;newsletter;transactional</PackageTags>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
     <ItemGroup>
@@ -33,6 +36,7 @@
     <ItemGroup>
         <None Include="../LICENSE.md" Pack="true" PackagePath="/"/>
         <None Include="../README.md" Pack="true" PackagePath="/"/>
+        <None Include="../PACKAGE.md" Pack="true" PackagePath="docs/"/>
     </ItemGroup>
 
 </Project>
