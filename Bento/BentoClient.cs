@@ -1,13 +1,15 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using System.Web;
 using Bento.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Bento;
@@ -16,11 +18,13 @@ public class BentoClient : IBentoClient
 {
     private readonly HttpClient _httpClient;
     private readonly BentoOptions _options;
+    private readonly ILogger<BentoClient> _logger;
 
-    public BentoClient(HttpClient httpClient, IOptions<BentoOptions> options)
+    public BentoClient(HttpClient httpClient, IOptions<BentoOptions> options, ILogger<BentoClient> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
+        _logger = logger;
 
         _httpClient.BaseAddress = new Uri("https://app.bentonow.com/api/v1/");
 
@@ -42,9 +46,9 @@ public class BentoClient : IBentoClient
     {
         var url = BuildUrl(endpoint, queryParams);
         var fullUrl = new Uri(_httpClient.BaseAddress!, url).ToString();
-        Console.WriteLine($"Full Request URL: {fullUrl}");
-        Console.WriteLine(
-            $"Request Headers: {string.Join(", ", _httpClient.DefaultRequestHeaders.Select(h => $"{h.Key}:{string.Join(",", h.Value)}"))}");
+        _logger.LogDebug("Making GET request to: {Url}", fullUrl);
+        _logger.LogTrace("Request headers: {Headers}", 
+            string.Join(", ", _httpClient.DefaultRequestHeaders.Select(h => $"{h.Key}:{string.Join(",", h.Value)}")));
 
         var response = await _httpClient.GetAsync(url);
         return await ProcessResponseAsync<T>(response);
@@ -54,9 +58,9 @@ public class BentoClient : IBentoClient
     {
         var url = BuildUrl(endpoint, null);
         var fullUrl = new Uri(_httpClient.BaseAddress!, url).ToString();
-        Console.WriteLine($"Full Request URL: {fullUrl}");
-        Console.WriteLine(
-            $"Request Headers: {string.Join(", ", _httpClient.DefaultRequestHeaders.Select(h => $"{h.Key}:{string.Join(",", h.Value)}"))}");
+        _logger.LogDebug("Making POST request to: {Url}", fullUrl);
+        _logger.LogTrace("Request headers: {Headers}", 
+            string.Join(", ", _httpClient.DefaultRequestHeaders.Select(h => $"{h.Key}:{string.Join(",", h.Value)}")));
 
         var content = data != null
             ? new StringContent(
@@ -68,7 +72,11 @@ public class BentoClient : IBentoClient
                 "application/json")
             : null;
 
-        if (content != null) Console.WriteLine($"Request Body: {await content.ReadAsStringAsync()}");
+        if (content != null) 
+        {
+            var requestBody = await content.ReadAsStringAsync();
+            _logger.LogTrace("Request body: {Body}", requestBody);
+        }
 
         var response = await _httpClient.PostAsync(url, content);
         return await ProcessResponseAsync<T>(response);
@@ -76,39 +84,43 @@ public class BentoClient : IBentoClient
 
     private string BuildUrl(string endpoint, object? queryParams)
     {
-        var queryString = "";
+        var queryList = new List<string>();
+
         if (queryParams != null)
         {
             var parameters = queryParams.ToDictionary()
                 .Where(kvp => kvp.Value != null)
-                .Select(kvp => $"{HttpUtility.UrlEncode(kvp.Key)}={HttpUtility.UrlEncode(kvp.Value?.ToString())}");
-            
-            if (parameters.Any())
-            {
-                queryString = "?" + string.Join("&", parameters);
-            }
+                .Select(kvp => $"{WebUtility.UrlEncode(kvp.Key)}={WebUtility.UrlEncode(kvp.Value!.ToString())}");
+
+            queryList.AddRange(parameters);
         }
 
-        // Add site_uuid parameter
-        var separator = queryString.Contains("?") ? "&" : "?";
-        queryString += $"{separator}site_uuid={HttpUtility.UrlEncode(_options.SiteUuid)}";
-        
+        // Always append site_uuid
+        queryList.Add($"site_uuid={WebUtility.UrlEncode(_options.SiteUuid)}");
+
+        var queryString = queryList.Any() ? "?" + string.Join("&", queryList) : "";
+
         return $"{endpoint}{queryString}";
     }
 
     private async Task<BentoResponse<T>> ProcessResponseAsync<T>(HttpResponseMessage response)
     {
         var content = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"Full Response Content: {content}");
+        _logger.LogTrace("Response content: {Content}", content);
+        
         if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Request failed with status {StatusCode}: {Error}", response.StatusCode, content);
             return new BentoResponse<T>
             {
                 Success = false,
                 Error = content,
                 StatusCode = response.StatusCode
             };
+        }
 
         var result = JsonSerializer.Deserialize<T>(content);
+        _logger.LogDebug("Request completed successfully with status {StatusCode}", response.StatusCode);
         return new BentoResponse<T>
         {
             Success = true,
