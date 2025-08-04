@@ -78,7 +78,7 @@ To enable automatic publishing to NuGet.org, you need to configure the repositor
 3. **Verify Setup:**
     - Once configured, releases will automatically publish to NuGet.org
     - Check the Actions tab for publishing status
-    - Package will be available at: https://www.nuget.org/packages/Bento.SDK/
+    - Package will be available at: [https://www.nuget.org/packages/Bento.SDK/](https://www.nuget.org/packages/Bento.SDK/)
 
 ## Automated CI/CD
 
@@ -145,7 +145,7 @@ After successful release, the following artifacts will be available:
 
 2. **NuGet.org:**
 
-    - Package available at: https://www.nuget.org/packages/Bento.SDK/
+    - Package available at: [https://www.nuget.org/packages/Bento.SDK/](https://www.nuget.org/packages/Bento.SDK/)
     - Install with: `dotnet add package Bento.SDK --version {version}`
 
 3. **GitHub Actions artifacts:**

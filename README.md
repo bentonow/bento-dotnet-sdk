@@ -1,6 +1,6 @@
 # Bento .NET SDK
 
-<img align="right" src="https://app.bentonow.com/brand/logoanim.gif">
+<img align="right" src="https://app.bentonow.com/brand/logoanim.gif" alt="Bento logo animation">
 
 [![NuGet Version](https://img.shields.io/nuget/v/Bento.SDK.svg)](https://www.nuget.org/packages/Bento.SDK/)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/Bento.SDK.svg)](https://www.nuget.org/packages/Bento.SDK/)

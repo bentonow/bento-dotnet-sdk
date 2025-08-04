@@ -50,7 +50,7 @@ The README included in this package contains comprehensive examples for all feat
 
 ## Support
 
-- Documentation: https://docs.bentonow.com
-- GitHub: https://github.com/bentonow/bento-dotnet-sdk
-- Discord: https://discord.gg/ssXXFRmt5F
+- Documentation: [https://docs.bentonow.com](https://docs.bentonow.com)
+- GitHub: [https://github.com/bentonow/bento-dotnet-sdk](https://github.com/bentonow/bento-dotnet-sdk)
+- Discord: [https://discord.gg/ssXXFRmt5F](https://discord.gg/ssXXFRmt5F)
 - Email: jesse@bentonow.com
