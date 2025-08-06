@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build and Pack NuGet Package",
+			"type": "shell",
+			"command": "dotnet pack Bento/Bento.csproj --configuration Release --output ./packages --verbosity normal",
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$msCompile"
+			]
+		}
+	]
+}

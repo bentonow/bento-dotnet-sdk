@@ -1,17 +1,42 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <PackageId>Bento.SDK</PackageId>
+        <Version>1.0.0</Version>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+        <Authors>bentonow.com</Authors>
+        <Description>Bento .NET SDK for email marketing and automation. Includes comprehensive examples and documentation.</Description>
+        <PackageProjectUrl>https://github.com/bentonow/bento-dotnet-sdk</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/bentonow/bento-dotnet-sdk</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageTags>bento;email;marketing;automation;sdk;dotnet;newsletter;transactional</PackageTags>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 
     <ItemGroup>
-        <FrameworkReference Include="Microsoft.AspNetCore.App" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.7"/>
+        <PackageReference Include="System.Text.Json" Version="9.0.7"/>
+        <PackageReference Include="IsExternalInit" Version="1.0.3">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="../LICENSE.md" Pack="true" PackagePath="/"/>
+        <None Include="../README.md" Pack="true" PackagePath="/"/>
+        <None Include="../PACKAGE.md" Pack="true" PackagePath="docs/"/>
     </ItemGroup>
 
 </Project>
