@@ -109,12 +109,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-test
     if: github.event.inputs.release == 'true'
+    permissions:
+      contents: write
+      packages: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # Need full history for commit logs
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -197,7 +201,8 @@ jobs:
           VERSION="${{ steps.version.outputs.new_version }}"
           
           # Get commits since last release (approximation based on main branch)
-          COMMITS=$(git log --pretty=format:"- %s" -10 --no-merges)
+          # Use || true to prevent failure if no commits
+          COMMITS=$(git log --pretty=format:"- %s" -10 --no-merges || echo "- Release v${VERSION}")
           
           cat > release_notes.md << EOF
           ## Bento .NET SDK v${VERSION}
@@ -242,8 +247,8 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           
-          # Check if there are changes to commit
-          if git diff --quiet Bento/Bento.csproj; then
+          # Check if there are actual changes (git diff --exit-code returns 1 if there are changes)
+          if git diff --exit-code Bento/Bento.csproj > /dev/null 2>&1; then
             echo "No version changes to commit"
           else
             git add Bento/Bento.csproj
