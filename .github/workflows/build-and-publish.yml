@@ -1,17 +1,28 @@
 ---
 name: Build and Publish Bento SDK
 
-"on":
+on:
   push:
     branches: [main, develop]
-    tags:
-      - 'v*.*.*'
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Create a release?'
+        required: true
+        type: boolean
+        default: false
+      version:
+        description: 'Version (e.g., 1.2.3) - leave empty to auto-increment'
+        required: false
+        type: string
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
 
     steps:
       - name: Checkout code
@@ -21,6 +32,19 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
+
+      - name: Get current version
+        id: get-version
+        run: |
+          # Read version from project file
+          if [ -f "Bento/Bento.csproj" ]; then
+            CURRENT_VERSION=$(grep -oPm1 "(?<=<Version>)[^<]+" Bento/Bento.csproj || echo "1.0.0")
+          else
+            CURRENT_VERSION="1.0.0"
+          fi
+          
+          echo "Current version: $CURRENT_VERSION"
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
       - name: Restore dependencies
         run: dotnet restore
@@ -54,212 +78,201 @@ jobs:
           EOF
 
           # Run tests with timeout and capture exit code
-          timeout 300 dotnet run -- --verbose > test_output.log 2>&1 || \
-              TEST_EXIT_CODE=$?
+          timeout 300 dotnet run -- --verbose > test_output.log 2>&1 || TEST_EXIT_CODE=$?
 
           # Display test output
           echo "=== Test Output ==="
           cat test_output.log
 
-          # Check if tests ran successfully (expect them to fail auth but run)
+          # Check if tests ran successfully
           if grep -q "Test Summary:" test_output.log; then
             echo "✅ Functional tests executed successfully"
-            echo "ℹ️  Tests are expected to show 'Success=False' " \
-                 "due to dummy API keys"
+            echo "ℹ️  Tests are expected to show 'Success=False' due to dummy API keys"
           else
             echo "❌ Functional tests failed to execute properly"
             exit 1
           fi
         env:
-          # Use test config file instead of default
           ASPNETCORE_ENVIRONMENT: test
-
-      - name: Build Bento project specifically
-        run: dotnet build Bento/Bento.csproj --configuration Release
-
-      - name: Copy artifacts to directory
-        run: |
-          mkdir -p ./artifacts
-          cp Bento/bin/Release/netstandard2.1/* ./artifacts/
-          echo "Copied build artifacts"
-
-      - name: List artifacts directory
-        run: ls -la ./artifacts/
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: bento-sdk-dll-${{ github.sha }}
+          name: bento-sdk-build-${{ github.sha }}
           path: |
-            ./artifacts/Bento.dll
-            ./artifacts/Bento.pdb
-            ./artifacts/Bento.deps.json
+            Bento/bin/Release/netstandard2.1/Bento.dll
+            Bento/bin/Release/netstandard2.1/Bento.pdb
+            Bento/bin/Release/netstandard2.1/Bento.deps.json
           retention-days: 30
 
-  package-and-github-release:
+  release:
     runs-on: ubuntu-latest
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    outputs:
-      version: ${{ steps.version.outputs.version }}
+    needs: build-and-test
+    if: github.event.inputs.release == 'true'
+    permissions:
+      contents: write
+      packages: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # Need full history for commit logs
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      - name: Extract version from tag
+      - name: Determine release version
         id: version
         run: |
-          # Extract version from tag (v1.2.3 -> 1.2.3)
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version extracted from tag: $VERSION"
-
-          # Extract clean version without prerelease suffix
-          # for AssemblyVersion/FileVersion
-          CLEAN_VERSION=$(echo "$VERSION" | sed 's/-.*$//')
-          echo "clean_version=$CLEAN_VERSION" >> $GITHUB_OUTPUT
-          echo "Clean version for assemblies: $CLEAN_VERSION"
+          # Function to increment version
+          increment_version() {
+            local version=$1
+            IFS='.' read -r major minor patch <<< "$version"
+            patch=$((patch + 1))
+            echo "${major}.${minor}.${patch}"
+          }
+          
+          CURRENT_VERSION="${{ needs.build-and-test.outputs.version }}"
+          
+          # Use provided version or auto-increment
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            NEW_VERSION="${{ github.event.inputs.version }}"
+            echo "Using manually specified version: $NEW_VERSION"
+          else
+            NEW_VERSION=$(increment_version "$CURRENT_VERSION")
+            echo "Auto-incremented version from $CURRENT_VERSION to $NEW_VERSION"
+          fi
+          
+          # Validate version format
+          if ! [[ "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "Error: Invalid version format: $NEW_VERSION"
+            echo "Version must be in format: major.minor.patch or major.minor.patch-suffix"
+            exit 1
+          fi
+          
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "clean_version=$(echo $NEW_VERSION | sed 's/-.*$//')" >> $GITHUB_OUTPUT
 
       - name: Update version in project file
         run: |
-          VERSION=${{ steps.version.outputs.version }}
-          CLEAN_VERSION=${{ steps.version.outputs.clean_version }}
-          echo "Updating project file with version: $VERSION"
-          echo "Using clean version for assemblies: $CLEAN_VERSION"
-
+          VERSION="${{ steps.version.outputs.new_version }}"
+          CLEAN_VERSION="${{ steps.version.outputs.clean_version }}"
+          
           # Install xmlstarlet for XML manipulation
           sudo apt-get update && sudo apt-get install -y xmlstarlet
-
-          # Backup original file
-          cp Bento/Bento.csproj Bento/Bento.csproj.backup
-
-          # Update versions using xmlstarlet (XML-aware tool)
+          
+          # Update versions using xmlstarlet
           xmlstarlet ed -L \
             -u "//Version" -v "$VERSION" \
             -u "//AssemblyVersion" -v "$CLEAN_VERSION.0" \
             -u "//FileVersion" -v "$CLEAN_VERSION.0" \
             Bento/Bento.csproj
+          
+          echo "Updated project file to version: $VERSION"
 
-          echo "Project file updated successfully:"
-          echo "Before:"
-          grep -E "(Version|AssemblyVersion|FileVersion)" \
-            Bento/Bento.csproj.backup || echo "No version elements found"
-          echo "After:"
-          grep -E "(Version|AssemblyVersion|FileVersion)" \
-            Bento/Bento.csproj || echo "No version elements found"
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build release version
-        run: dotnet build Bento/Bento.csproj --configuration Release
+      - name: Restore and Build with new version
+        run: |
+          dotnet restore
+          dotnet build Bento/Bento.csproj --configuration Release
 
       - name: Create NuGet package
         run: |
           dotnet pack Bento/Bento.csproj --configuration Release \
           --output ./packages --no-build
 
-      - name: Copy DLL artifacts to separate directory
+      - name: Create release assets
         run: |
-          mkdir -p ./release-artifacts
+          # Create DLL archive
+          mkdir -p release-artifacts
           cp Bento/bin/Release/netstandard2.1/* ./release-artifacts/
-          echo "Copied artifacts to release-artifacts directory"
-
-      - name: List release artifacts
-        run: |
-          echo "Release artifacts:"
-          ls -la ./release-artifacts/
-          echo "NuGet packages:"
-          ls -la ./packages/
-
-      - name: Create release archive
-        run: |
           cd release-artifacts
-          zip -r ../bento-sdk-${{ steps.version.outputs.version }}.zip \
+          zip -r ../bento-sdk-${{ steps.version.outputs.new_version }}.zip \
             Bento.dll Bento.pdb Bento.deps.json
           cd ..
-          echo "Created archive: bento-sdk-${{
-            steps.version.outputs.version }}.zip"
-          ls -la bento-sdk-${{ steps.version.outputs.version }}.zip
+          
+          echo "Created release archive"
+
+      - name: Generate release notes
+        run: |
+          VERSION="${{ steps.version.outputs.new_version }}"
+          
+          # Get commits since last release (approximation based on main branch)
+          # Use || true to prevent failure if no commits
+          COMMITS=$(git log --pretty=format:"- %s" -10 --no-merges || echo "- Release v${VERSION}")
+          
+          cat > release_notes.md << EOF
+          ## Bento .NET SDK v${VERSION}
+          
+          ### 📦 Downloads
+          - **DLL Package**: \`bento-sdk-${VERSION}.zip\`
+          - **NuGet Package**: \`Bento.SDK.${VERSION}.nupkg\`
+          
+          ### 🚀 Installation
+          \`\`\`bash
+          dotnet add package Bento.SDK --version ${VERSION}
+          \`\`\`
+          
+          ### 📝 Recent Changes
+          ${COMMITS}
+          EOF
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Bento SDK v${{ steps.version.outputs.version }}"
-          body: |
-            ## Bento .NET SDK v${{ steps.version.outputs.version }}
-
-            ### 📦 Downloads
-            - **DLL Package**: `bento-sdk-${{
-              steps.version.outputs.version }}.zip`
-            - **NuGet Package**: `Bento.SDK.${{
-              steps.version.outputs.version }}.nupkg`
-
-            ### 🚀 Installation
-            ```bash
-            dotnet add package Bento.SDK \
-            --version ${{ steps.version.outputs.version }}
-            ```
-
-            Or download the DLL package and reference it directly.
+          tag_name: v${{ steps.version.outputs.new_version }}
+          name: "Bento SDK v${{ steps.version.outputs.new_version }}"
+          body_path: release_notes.md
           files: |
-            bento-sdk-${{ steps.version.outputs.version }}.zip
+            bento-sdk-${{ steps.version.outputs.new_version }}.zip
             packages/*.nupkg
           draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: ${{ contains(steps.version.outputs.new_version, '-') }}
+          token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
 
-      - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: bento-sdk-release-${{ steps.version.outputs.version }}
-          path: ./release-artifacts/
-          retention-days: 90
-
-      - name: Upload NuGet package
-        uses: actions/upload-artifact@v4
-        with:
-          name: bento-sdk-nuget-${{ steps.version.outputs.version }}
-          path: ./packages/*.nupkg
-          retention-days: 90
-
-  publish-to-nuget:
-    runs-on: ubuntu-latest
-    needs: package-and-github-release
-    if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
-    environment: nuget-production  # Optional: requires manual approval
-
-    steps:
-      - name: Download NuGet package
-        uses: actions/download-artifact@v4
-        with:
-          name: bento-sdk-nuget-${{
-            needs.package-and-github-release.outputs.version }}
-          path: ./packages/
-
-      - name: Extract version from tag
-        id: version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Publishing version: $VERSION"
-
-      - name: List packages to publish
-        run: |
-          echo "Packages to publish:"
-          ls -la ./packages/
-
-      - name: Publish to NuGet.org
+      - name: Publish to NuGet
+        if: ${{ !contains(steps.version.outputs.new_version, '-') }}
         run: |
           dotnet nuget push packages/*.nupkg \
           --api-key ${{ secrets.NUGET_API_KEY }} \
           --source https://api.nuget.org/v3/index.json --skip-duplicate
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+      - name: Commit version update back to repository
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Check if there are actual changes (git diff --exit-code returns 1 if there are changes)
+          if git diff --exit-code Bento/Bento.csproj > /dev/null 2>&1; then
+            echo "No version changes to commit"
+          else
+            git add Bento/Bento.csproj
+            git commit -m "Release: Bump version to ${{ steps.version.outputs.new_version }}"
+          
+            # Push with retry in case of conflicts
+            for i in {1..3}; do
+              if git push origin main; then
+                echo "Successfully pushed version update"
+                break
+              else
+                echo "Push failed, pulling latest and retrying..."
+                git pull --rebase origin main
+              fi
+            done
+          fi
+          
+          echo "✅ Version ${{ steps.version.outputs.new_version }} released successfully!"
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bento-sdk-release-${{ steps.version.outputs.new_version }}
+          path: |
+            ./release-artifacts/
+            ./packages/*.nupkg
+          retention-days: 90
