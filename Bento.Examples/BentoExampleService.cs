@@ -604,14 +604,39 @@ public class BentoExampleService
     {
         Console.WriteLine("  → Testing field management...");
 
-        // Get all fields
+        // 1. Get all fields (generic response)
         var getFieldsResponse = await _fieldService.GetFieldsAsync<dynamic>();
-        Console.WriteLine($"  → Get fields: Success={getFieldsResponse.Success}");
+        Console.WriteLine($"  → Get fields (generic): Success={getFieldsResponse.Success}");
 
-        // Create a new field
+        // 2. Get all fields (typed response) - returns FieldsResponse directly
+        try
+        {
+            var fieldsResponse = await _fieldService.GetFieldsAsync();
+            var fieldsCount = fieldsResponse.Data?.Length ?? 0;
+            Console.WriteLine($"  → Get fields (typed): Found {fieldsCount} fields");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Get fields (typed): Failed - {ex.Message}");
+        }
+
+        // 3. Create a new field (generic response)
         var fieldRequest = new FieldRequest("dotnet_test_field");
         var createFieldResponse = await _fieldService.CreateFieldAsync<dynamic>(fieldRequest);
-        Console.WriteLine($"  → Create field 'dotnet_test_field': Success={createFieldResponse.Success}");
+        Console.WriteLine($"  → Create field 'dotnet_test_field' (generic): Success={createFieldResponse.Success}");
+
+        // 4. Create a new field (typed response) - returns FieldResponse directly
+        try
+        {
+            var uniqueFieldKey = $"dotnet_typed_field_{DateTime.Now.Ticks}";
+            var typedFieldRequest = new FieldRequest(uniqueFieldKey);
+            var newField = await _fieldService.CreateFieldAsync(typedFieldRequest);
+            Console.WriteLine($"  → Create field '{uniqueFieldKey}' (typed): Success={newField != null}, Key={newField?.Attributes?.Key}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Create field (typed): Failed - {ex.Message}");
+        }
     }
 
     private async Task RunEmailExample()

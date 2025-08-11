@@ -116,14 +116,28 @@ public class BentoSubscriberService : IBentoSubscriberService
 
         var request = new
         {
-            subscribers = subscribersList.Select(s => new
+            subscribers = subscribersList.Select(s => 
             {
-                email = s.Email,
-                first_name = s.FirstName,
-                last_name = s.LastName,
-                tags = s.Tags != null ? string.Join(",", s.Tags) : null,
-                remove_tags = s.RemoveTags != null ? string.Join(",", s.RemoveTags) : null,
-                fields = s.Fields
+                // Start with basic subscriber properties
+                var subscriberData = new Dictionary<string, object?>
+                {
+                    { "email", s.Email },
+                    { "first_name", s.FirstName },
+                    { "last_name", s.LastName },
+                    { "tags", s.Tags != null ? string.Join(",", s.Tags) : null },
+                    { "remove_tags", s.RemoveTags != null ? string.Join(",", s.RemoveTags) : null }
+                };
+
+                // Add custom fields as separate properties at the same level
+                if (s.Fields != null)
+                {
+                    foreach (var field in s.Fields)
+                    {
+                        subscriberData[field.Key] = field.Value;
+                    }
+                }
+
+                return subscriberData;
             })
         };
 
