@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Bento.Models;
 using Bento.Services;
 
@@ -378,12 +379,14 @@ public class BentoExampleService
     {
         Console.WriteLine("  → Testing event tracking...");
 
+        // 1. Track single event (generic response)
         var eventRequest = new EventRequest(
-            Type: "DotNet_test_event",
+            Type: "$completed_onboarding",
             Email: "test@example.com",
             Fields: new Dictionary<string, object>
             {
-                { "test_field", "test_value" }
+                { "first_name", "John" },
+                { "last_name", "Doe" }
             },
             Details: new Dictionary<string, object>
             {
@@ -391,8 +394,38 @@ public class BentoExampleService
             }
         );
 
-        var response = await _eventService.TrackEventAsync<dynamic>(eventRequest);
-        Console.WriteLine($"  → Event tracked: Success={response.Success}, Status={response.StatusCode}");
+        var genericResponse = await _eventService.TrackEventAsync<dynamic>(eventRequest);
+        Console.WriteLine($"  → Event tracked (generic): Success={genericResponse.Success}, Status={genericResponse.StatusCode}");
+
+        // 2. Track single event (typed response) - returns EventResponse directly
+        try
+        {
+            var typedResponse = await _eventService.TrackEventAsync(eventRequest);
+            Console.WriteLine($"  → Event tracked (typed): Results={typedResponse.Results}, Failed={typedResponse.Failed}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  → Event tracking failed: {ex.Message}");
+        }
+
+        // 3. Track multiple events in batch
+        var batchEvents = new[]
+        {
+            new EventRequest("$purchase", "buyer1@example.com", 
+                Fields: new Dictionary<string, object> { { "amount", 99.99 } }),
+            new EventRequest("$purchase", "buyer2@example.com", 
+                Fields: new Dictionary<string, object> { { "amount", 149.99 } })
+        };
+
+        try
+        {
+            var batchResponse = await _eventService.TrackEventsAsync(batchEvents);
+            Console.WriteLine($"  → Batch events tracked: Results={batchResponse.Results}, Failed={batchResponse.Failed}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  → Batch event tracking failed: {ex.Message}");
+        }
     }
 
     private async Task RunSubscriberExample()
