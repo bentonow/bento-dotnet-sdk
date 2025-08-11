@@ -1,3 +1,4 @@
+using System;
 using Bento.Models;
 using Bento.Services;
 
@@ -166,16 +167,62 @@ public class BentoExampleService
     
     private async Task RunCommandExample()
     {
-        Console.WriteLine("\nTesting Command Service:");
+        Console.WriteLine("  → Testing command execution...");
 
-        var command = new CommandRequest(
-            Command: "add_tag",
-            Email: "test@example.com",
-            Query: "sdk:dotnet"
-        );
+        // 1. Execute single command (generic response)
+        var addTagCommand = CommandRequestHelper.AddTag("test@example.com", "sdk:dotnet");
+        var singleResponse = await _commandService.ExecuteCommandAsync<dynamic>(addTagCommand);
+        Console.WriteLine($"  → Execute single command (generic): Success={singleResponse.Success}");
 
-        var response = await _commandService.ExecuteCommandAsync<dynamic>(command);
-        Console.WriteLine($"Command execution response: {response.Success}");
+        // 2. Execute single command (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var removeTagCommand = CommandRequestHelper.RemoveTag("test@example.com", "old-tag");
+            var singleTypedResponse = await _commandService.ExecuteCommandAsync(removeTagCommand);
+            Console.WriteLine($"  → Execute single command (typed): Updated subscriber with ID={singleTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Execute single command (typed): Failed - {ex.Message}");
+        }
+
+        // 3. Execute batch commands (generic response)
+        var batchCommands = new[]
+        {
+            CommandRequestHelper.AddField("test@example.com", "test_field", "test_value"),
+            CommandRequestHelper.Subscribe("test@example.com"),
+            CommandRequestHelper.AddTagViaEvent("test@example.com", "via-event-tag")
+        };
+        
+        var batchResponse = await _commandService.ExecuteBatchCommandsAsync<dynamic>(batchCommands);
+        Console.WriteLine($"  → Execute batch commands (generic): Success={batchResponse.Success}");
+
+        // 4. Execute batch commands (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var batchTypedResponse = await _commandService.ExecuteBatchCommandsAsync(batchCommands);
+            Console.WriteLine($"  → Execute batch commands (typed): Updated subscriber with ID={batchTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Execute batch commands (typed): Failed - {ex.Message}");
+        }
+
+        // 5. Demonstrate all command types
+        var allCommandTypes = new[]
+        {
+            CommandRequestHelper.AddTag("test@example.com", "new-tag"),
+            CommandRequestHelper.AddTagViaEvent("test@example.com", "event-tag"),
+            CommandRequestHelper.RemoveTag("test@example.com", "remove-tag"),
+            CommandRequestHelper.AddField("test@example.com", "custom_field", "custom_value"),
+            CommandRequestHelper.RemoveField("test@example.com", "old_field"),
+            CommandRequestHelper.Subscribe("test@example.com"),
+            CommandRequestHelper.Unsubscribe("test@example.com"),
+            CommandRequestHelper.ChangeEmail("test@example.com", "new@example.com")
+        };
+        
+        var allCommandsResponse = await _commandService.ExecuteBatchCommandsAsync<dynamic>(allCommandTypes);
+        Console.WriteLine($"  → Execute all command types: Success={allCommandsResponse.Success}");
     }
 
     private async Task RunBlacklistExample()
@@ -352,11 +399,34 @@ public class BentoExampleService
     {
         Console.WriteLine("  → Testing subscriber management...");
 
-        // Find subscriber
+        // 1. Find subscriber (generic response)
         var findResponse = await _subscriberService.FindSubscriberAsync<dynamic>("test@example.com");
-        Console.WriteLine($"  → Find subscriber: Success={findResponse.Success}");
+        Console.WriteLine($"  → Find subscriber (generic): Success={findResponse.Success}");
 
-        // Create subscriber
+        // 2. Find subscriber (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var findTypedResponse = await _subscriberService.FindSubscriberAsync("test@example.com");
+            Console.WriteLine($"  → Find subscriber (typed): Found subscriber with ID={findTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Find subscriber (typed): Failed - {ex.Message}");
+        }
+
+        // 3. Find subscriber with request object
+        try
+        {
+            var findRequest = new FindSubscriberRequest { Email = "test@example.com" };
+            var findRequestResponse = await _subscriberService.FindSubscriberAsync(findRequest);
+            Console.WriteLine($"  → Find subscriber (request): Found subscriber with ID={findRequestResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Find subscriber (request): Failed - {ex.Message}");
+        }
+
+        // 4. Create subscriber (generic response)
         var subscriberRequest = new SubscriberRequest(
             Email: "test@example.com",
             FirstName: "Test",
@@ -365,9 +435,20 @@ public class BentoExampleService
         );
         
         var createResponse = await _subscriberService.CreateSubscriberAsync<dynamic>(subscriberRequest);
-        Console.WriteLine($"  → Create subscriber: Success={createResponse.Success}");
+        Console.WriteLine($"  → Create subscriber (generic): Success={createResponse.Success}");
 
-        // Import subscribers
+        // 5. Create subscriber (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var createTypedResponse = await _subscriberService.CreateSubscriberAsync(subscriberRequest);
+            Console.WriteLine($"  → Create subscriber (typed): Created subscriber with ID={createTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Create subscriber (typed): Failed - {ex.Message}");
+        }
+
+        // 6. Import subscribers (generic response)
         var subscribers = new List<SubscriberRequest>
         {
             new(
@@ -385,7 +466,78 @@ public class BentoExampleService
         };
         
         var importResponse = await _subscriberService.ImportSubscribersAsync<dynamic>(subscribers);
-        Console.WriteLine($"  → Import {subscribers.Count} subscribers: Success={importResponse.Success}");
+        Console.WriteLine($"  → Import {subscribers.Count} subscribers (generic): Success={importResponse.Success}");
+
+        // 7. Import subscribers (typed response) - returns ImportSubscribersResponse directly
+        try
+        {
+            var importTypedResponse = await _subscriberService.ImportSubscribersAsync(subscribers);
+            Console.WriteLine($"  → Import {subscribers.Count} subscribers (typed): Processed {importTypedResponse.Result} subscribers");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Import {subscribers.Count} subscribers (typed): Failed - {ex.Message}");
+        }
+
+        // 8. Search subscribers (Enterprise feature)
+        var searchRequest = new SearchSubscribersRequest
+        {
+            Page = 1,
+            CreatedAt = new DateFilter { Gt = DateTime.UtcNow.AddDays(-30).ToString("yyyy-MM-ddTHH:mm:ss.fffZ") }
+        };
+        
+        var searchResponse = await _subscriberService.SearchSubscribersAsync<dynamic>(searchRequest);
+        Console.WriteLine($"  → Search subscribers (generic): Success={searchResponse.Success}");
+
+        // 9. Search subscribers (typed response) - returns SearchSubscribersResponse directly
+        try
+        {
+            var searchTypedResponse = await _subscriberService.SearchSubscribersAsync(searchRequest);
+            Console.WriteLine($"  → Search subscribers (typed): Found {searchTypedResponse.Data?.Count() ?? 0} subscribers");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Search subscribers (typed): Failed - {ex.Message}");
+        }
+
+        // 10. Run single command (add tag)
+        var addTagCommand = CommandRequestHelper.AddTag("test@example.com", "new-tag");
+        var commandResponse = await _subscriberService.RunCommandAsync<dynamic>(addTagCommand);
+        Console.WriteLine($"  → Run add tag command (generic): Success={commandResponse.Success}");
+
+        // 11. Run single command (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var removeTagCommand = CommandRequestHelper.RemoveTag("test@example.com", "old-tag");
+            var commandTypedResponse = await _subscriberService.RunCommandAsync(removeTagCommand);
+            Console.WriteLine($"  → Run remove tag command (typed): Updated subscriber with ID={commandTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Run remove tag command (typed): Failed - {ex.Message}");
+        }
+
+        // 12. Run multiple commands
+        var batchCommands = new[]
+        {
+            CommandRequestHelper.AddField("test@example.com", "test_field", "test_value"),
+            CommandRequestHelper.Subscribe("test@example.com"),
+            CommandRequestHelper.AddTagViaEvent("test@example.com", "via-event-tag")
+        };
+        
+        var batchResponse = await _subscriberService.RunCommandsAsync<dynamic>(batchCommands);
+        Console.WriteLine($"  → Run batch commands (generic): Success={batchResponse.Success}");
+
+        // 13. Run multiple commands (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var batchTypedResponse = await _subscriberService.RunCommandsAsync(batchCommands);
+            Console.WriteLine($"  → Run batch commands (typed): Updated subscriber with ID={batchTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Run batch commands (typed): Failed - {ex.Message}");
+        }
     }
 
     private async Task RunTagExample()
