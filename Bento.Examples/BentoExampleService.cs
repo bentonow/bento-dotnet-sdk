@@ -337,26 +337,80 @@ public class BentoExampleService
     {
         Console.WriteLine("  → Testing broadcast service...");
 
-        // Get all broadcasts
+        // Get all broadcasts using generic method
         var getBroadcastsResponse = await _broadcastService.GetBroadcastsAsync<dynamic>();
-        Console.WriteLine($"  → Get broadcasts: Success={getBroadcastsResponse.Success}");
+        Console.WriteLine($"  → Get broadcasts (generic): Success={getBroadcastsResponse.Success}");
 
-        // Create a new broadcast
+        // Try to get broadcasts using typed method (will fail without valid auth)
+        try 
+        {
+            var typedBroadcasts = await _broadcastService.GetBroadcastsAsync();
+            Console.WriteLine($"  → Get broadcasts (typed): Count={typedBroadcasts.Data?.Length ?? 0}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Get broadcasts (typed): Failed - {ex.Message}");
+        }
+
+        // Test pagination parameters
+        var pagedBroadcasts = await _broadcastService.GetBroadcastsAsync<dynamic>(page: 1);
+        Console.WriteLine($"  → Get broadcasts (page 1): Success={pagedBroadcasts.Success}");
+
+        // Create a new broadcast with all available fields
         var broadcastRequest = new BroadcastRequest(
             Name: "Test Broadcast from .NET SDK",
             Subject: "Test Broadcast Subject",
             Content: "<p>Hello from the .NET SDK Broadcast!</p>",
             Type: "plain",
             From: new ContactInfo(
-                EmailAddress: "Your Author",
-                Name: "Author Name"
+                EmailAddress: "test@example.com",
+                Name: "SDK Test Author"
             ),
-            InclusiveTags: "test",
-            BatchSizePerHour: 1000
+            InclusiveTags: "test,sdk",
+            ExclusiveTags: "exclude",
+            SegmentId: "test_segment",
+            BatchSizePerHour: 1000,
+            SendAt: DateTime.UtcNow.AddHours(1), // Schedule for 1 hour from now
+            Approved: false // Keep as draft for testing
         );
 
+        // Test generic create method
         var createBroadcastResponse = await _broadcastService.CreateBroadcastAsync<dynamic>(broadcastRequest);
-        Console.WriteLine($"  → Create broadcast: Success={createBroadcastResponse.Success}");
+        Console.WriteLine($"  → Create broadcast (generic): Success={createBroadcastResponse.Success}");
+
+        // Test typed create method (will fail without valid auth)
+        try 
+        {
+            var typedCreateResult = await _broadcastService.CreateBroadcastAsync(broadcastRequest);
+            Console.WriteLine($"  → Create broadcast (typed): Queued={typedCreateResult.Results} broadcasts");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Create broadcast (typed): Failed - {ex.Message}");
+        }
+
+        // Test batch broadcast creation
+        var batchBroadcasts = new[]
+        {
+            broadcastRequest,
+            new BroadcastRequest(
+                Name: "Batch Broadcast 2",
+                Subject: "Batch Test 2",
+                Content: "<p>Second batch broadcast</p>",
+                Type: "plain",
+                From: new ContactInfo("test@example.com", "SDK Test")
+            )
+        };
+
+        try 
+        {
+            var batchResult = await _broadcastService.CreateBatchBroadcastsAsync(batchBroadcasts);
+            Console.WriteLine($"  → Create batch broadcasts (typed): Queued={batchResult.Results} broadcasts");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Create batch broadcasts (typed): Failed - {ex.Message}");
+        }
     }
 
     private async Task RunStatsExample()
