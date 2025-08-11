@@ -417,17 +417,35 @@ public class BentoExampleService
     {
         Console.WriteLine("\nTesting Stats Service:");
 
-        // Get site stats
-        var siteStatsResponse = await _statsService.GetSiteStatsAsync<dynamic>();
-        Console.WriteLine($"Get site stats response: {siteStatsResponse.Success}");
+        try
+        {
+            // Get site stats
+            var siteStatsRequest = new SiteStatsRequest { SiteUuid = "550e8400-e29b-41d4-a716-446655440000" };
+            var siteStatsResponse = await _statsService.GetSiteStatsAsync<dynamic>(siteStatsRequest);
+            Console.WriteLine($"Get site stats response: {siteStatsResponse.Success}");
 
-        // Get segment stats
-        var segmentStatsResponse = await _statsService.GetSegmentStatsAsync<dynamic>("segment_ID");
-        Console.WriteLine($"Get segment stats response: {segmentStatsResponse.Success}");
+            // Get segment stats
+            var segmentStatsRequest = new SegmentStatsRequest 
+            { 
+                SiteUuid = "550e8400-e29b-41d4-a716-446655440000", 
+                SegmentId = "123" 
+            };
+            var segmentStatsResponse = await _statsService.GetSegmentStatsAsync<dynamic>(segmentStatsRequest);
+            Console.WriteLine($"Get segment stats response: {segmentStatsResponse.Success}");
 
-        // Get report stats
-        var reportStatsResponse = await _statsService.GetReportStatsAsync<dynamic>("report_ID");
-        Console.WriteLine($"Get report stats response: {reportStatsResponse.Success}");
+            // Get report stats
+            var reportStatsRequest = new ReportStatsRequest 
+            { 
+                SiteUuid = "550e8400-e29b-41d4-a716-446655440000", 
+                ReportId = "456" 
+            };
+            var reportStatsResponse = await _statsService.GetReportStatsAsync<dynamic>(reportStatsRequest);
+            Console.WriteLine($"Get report stats response: {reportStatsResponse.Success}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Stats operations failed: {ex.Message}");
+        }
     }
 
     private async Task RunEventExample()
