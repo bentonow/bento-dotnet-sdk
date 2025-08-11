@@ -68,6 +68,8 @@ Get started with our [ðŸ“š integration guides](https://docs.bentonow.com), or [ð
     - [Tag Management](#tag-management)
     - [Field Management](#field-management)
     - [Email Management](#email-management)
+      - [Direct Email Sending (API)](#direct-email-sending-api)
+      - [Event-Triggered Email with Flows (Recommended)](#event-triggered-email-with-flows-recommended)
     - [Broadcast Management](#broadcast-management)
     - [Stats Management](#stats-management)
     - [Command Management](#command-management)
@@ -260,7 +262,19 @@ public class FieldExample
 
 ### Email Management
 
-Send transactional emails through Bento:
+> [!TIP] > **Recommended Approach**: Instead of sending emails directly via API, consider using **Events + Flows** for better email management. This approach allows you to:
+>
+> -   Use visual email templates created in Bento's editor
+> -   Set up automatic triggers and delays
+> -   Add tags and track subscriber behavior
+> -   Implement rate limiting and delivery optimization
+> -   Get detailed analytics and reports
+>
+> See the [Building the Flow guide](https://docs.bentonow.com/deliverability/double_optin#building-the-flow) and [Event-Triggered Email Example](#event-triggered-email-with-flows) below for the recommended pattern.
+
+#### Direct Email Sending (API)
+
+Send transactional emails directly through Bento API (requires full HTML content):
 
 ```csharp
 public class EmailExample
@@ -285,6 +299,84 @@ public class EmailExample
     }
 }
 ```
+
+#### Event-Triggered Email with Flows (Recommended)
+
+For beautiful templated emails, use Events to trigger Flows with pre-designed email templates:
+
+```csharp
+public class AuthCodeEmailExample
+{
+    private readonly IBentoEventService _eventService;
+    private readonly IBentoSubscriberService _subscriberService;
+
+    public AuthCodeEmailExample(IBentoEventService eventService, IBentoSubscriberService subscriberService)
+    {
+        _eventService = eventService;
+        _subscriberService = subscriberService;
+    }
+
+    public async Task SendAuthCodeEmail(string userEmail, string authCode)
+    {
+        // Step 1: Ensure subscriber exists
+        var subscriberRequest = new SubscriberRequest(
+            Email: userEmail,
+            Tags: new[] { "auth_user" }
+        );
+        await _subscriberService.CreateSubscriberAsync<dynamic>(subscriberRequest);
+
+        // Step 2: Trigger event that will activate your Flow
+        // The Flow should be configured in Bento with:
+        // - Trigger: "auth_code_requested" event
+        // - Action: Send email template with {{auth_code}} placeholder
+        // - Tags: Add "auth_pending" tag
+        // - Rate limiting: Max 3 emails per hour per subscriber
+        var eventRequest = new EventRequest(
+            Type: "auth_code_requested",
+            Email: userEmail,
+            Details: new Dictionary<string, object>
+            {
+                { "auth_code", authCode },
+                { "expires_at", DateTime.UtcNow.AddMinutes(15).ToString("yyyy-MM-ddTHH:mm:ssZ") },
+                { "request_ip", "127.0.0.1" } // Optional: for security tracking
+            }
+        );
+
+        var response = await _eventService.TrackEventAsync<dynamic>(eventRequest);
+
+        // The beautiful email with your custom template will be sent automatically via Flow!
+    }
+
+    public async Task HandleSuccessfulAuth(string userEmail)
+    {
+        // Trigger event when auth is successful to remove pending tag and add completion tracking
+        // NOTE: Alternatively, you can set up click tracking in your Flow
+        // to automatically handle successful auth when user clicks the auth link in email
+        var eventRequest = new EventRequest(
+            Type: "auth_completed",
+            Email: userEmail,
+            Details: new Dictionary<string, object>
+            {
+                { "completed_at", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") }
+            }
+        );
+
+        await _eventService.TrackEventAsync<dynamic>(eventRequest);
+    }
+}
+```
+
+> [!NOTE] > **Setting up the Flow in Bento:**
+>
+> 1. Go to Flows in your Bento dashboard
+> 2. Create a new Flow with trigger "Event: auth_code_requested"
+> 3. Add email action using your designed template
+> 4. Use `{{auth_code}}` and other event details as personalization variables
+> 5. Configure rate limiting and delivery settings
+> 6. Set up completion tracking for better analytics
+> 7. **Optional**: Configure click tracking in the Flow to automatically handle successful auth when user clicks the auth link, eliminating the need for `HandleSuccessfulAuth` method
+>
+> Learn more: [Flows Documentation](https://docs.bentonow.com/flows)
 
 ### Broadcast Management
 
