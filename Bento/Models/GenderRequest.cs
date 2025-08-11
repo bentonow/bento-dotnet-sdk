@@ -1,7 +1,9 @@
 namespace Bento.Models;
 
 /// <summary>
-/// Request model for gender prediction.
+/// Request model for gender prediction using experimental/gender endpoint.
+/// Guess a subscriber's gender using their first and last name.
+/// Best for US users as it's based on US Census Data.
 /// </summary>
-/// <param name="FullName">Full name or first name for gender prediction (works best with US names based on US Census Data)</param>
+/// <param name="FullName">Full name of a subscriber or just the first name (works best with US names based on US Census Data)</param>
 public record GenderRequest(string FullName);

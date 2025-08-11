@@ -6,7 +6,10 @@ namespace Bento.Services;
 
 /// <summary>
 /// Service for IP geolocation via Bento API.
-/// Uses experimental/geolocation endpoint (<see href="https://docs.bentonow.com/utility#the-geolocate-ip-address-model" />).
+/// Uses experimental/geolocation endpoint (<see href="https://docs.bentonow.com/utility" />).
+/// Geolocates IPv4 addresses with detailed location information.
+/// Only IPv4 addresses are currently supported.
+/// Response may contain null values for some fields.
 /// </summary>
 public class BentoGeolocationService : IBentoGeolocationService
 {
@@ -21,8 +24,8 @@ public class BentoGeolocationService : IBentoGeolocationService
     /// Geolocate IP address (generic response)
     /// </summary>
     /// <typeparam name="T">Response type</typeparam>
-    /// <param name="request">Geolocation request</param>
-    /// <returns>Geolocation response</returns>
+    /// <param name="request">Geolocation request with IPv4 address</param>
+    /// <returns>Generic geolocation response</returns>
     public Task<BentoResponse<T>> GeolocateIpAsync<T>(GeolocationRequest request)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
@@ -32,9 +35,10 @@ public class BentoGeolocationService : IBentoGeolocationService
 
     /// <summary>
     /// Geolocate IP address
+    /// Attempts to geolocate the provided IPv4 address with detailed location data
     /// </summary>
-    /// <param name="request">Geolocation request</param>
-    /// <returns>Geolocation data with country, city, coordinates etc.</returns>
+    /// <param name="request">Geolocation request with IPv4 address</param>
+    /// <returns>Geolocation data with country, city, coordinates etc. (some fields may be null)</returns>
     /// <exception cref="BentoException">Thrown when IP geolocation fails</exception>
     public async Task<GeolocationResponse> GeolocateIpAsync(GeolocationRequest request)
     {

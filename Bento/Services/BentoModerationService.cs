@@ -6,7 +6,9 @@ namespace Bento.Services;
 
 /// <summary>
 /// Service for content moderation via Bento API.
-/// Uses experimental/content_moderation endpoint (<see href="https://docs.bentonow.com/utility#the-moderate-content-model" />).
+/// Uses experimental/content_moderation endpoint (<see href="https://docs.bentonow.com/utility" />).
+/// Provides opinionated content moderation optimized for small amounts of text content.
+/// Designed to prevent links/XSS/etc inside content and returns safe version of content.
 /// </summary>
 public class BentoModerationService : IBentoModerationService
 {
@@ -21,8 +23,8 @@ public class BentoModerationService : IBentoModerationService
     /// Moderate content for safety (generic response)
     /// </summary>
     /// <typeparam name="T">Response type</typeparam>
-    /// <param name="request">Content moderation request</param>
-    /// <returns>Moderation response</returns>
+    /// <param name="request">Content moderation request with content to check</param>
+    /// <returns>Generic moderation response</returns>
     public Task<BentoResponse<T>> ModerateContentAsync<T>(ContentModerationRequest request)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
@@ -32,9 +34,10 @@ public class BentoModerationService : IBentoModerationService
 
     /// <summary>
     /// Moderate content for safety
+    /// Returns opinionated moderation score based on the content provided
     /// </summary>
-    /// <param name="request">Content moderation request</param>
-    /// <returns>Moderation results</returns>
+    /// <param name="request">Content moderation request with content to check</param>
+    /// <returns>Moderation results with valid flag, reasons array, and safe content</returns>
     /// <exception cref="BentoException">Thrown when content moderation fails</exception>
     public async Task<ContentModerationResponse> ModerateContentAsync(ContentModerationRequest request)
     {

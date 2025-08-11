@@ -1,58 +1,68 @@
 namespace Bento.Models;
 
 /// <summary>
-/// Response model for blacklist checking
+/// Response model for blacklist checking using experimental/blacklist.json endpoint.
+/// Validates IP or domain name with industry email reputation services to check for delivery issues.
+/// A true value for any of the providers indicates a problem with the domain/IP.
 /// </summary>
 public class BlacklistResponse
 {
     /// <summary>
-    /// The query that was checked
+    /// The query that was checked (domain or IP address)
     /// </summary>
     public string? Query { get; set; }
     
     /// <summary>
-    /// Description of the check
+    /// Description of the blacklist check performed
     /// </summary>
     public string? Description { get; set; }
     
     /// <summary>
-    /// Blacklist check results (can be null if all checks return false)
+    /// Blacklist check results from multiple providers
+    /// Can be null if all checks return false (no issues found)
     /// </summary>
     public BlacklistResults? Results { get; set; }
 }
 
 /// <summary>
-/// Blacklist check results
+/// Blacklist check results from multiple email reputation services.
+/// A true value for any provider indicates the domain/IP is flagged by that service.
 /// </summary>
 public class BlacklistResults
 {
     /// <summary>
-    /// Domain age is flagged
+    /// True/false flag if the domain age is flagged
+    /// Indicates if the domain was recently registered
     /// </summary>
     public bool JustRegistered { get; set; }
     
     /// <summary>
-    /// Spamhaus considers this spam
+    /// True if Spamhaus considers mail from this domain or IP to contain likely spam
+    /// Spamhaus is a major anti-spam organization
     /// </summary>
     public bool Spamhaus { get; set; }
     
     /// <summary>
-    /// Nordspam considers this spam
+    /// True if Nordspam considers mail from this domain or IP to likely contain spam
+    /// Nordspam is an email reputation service
     /// </summary>
     public bool Nordspam { get; set; }
     
     /// <summary>
-    /// Spfbl considers this spam
+    /// True if Spfbl considers mail from this domain or IP to likely contain spam
+    /// Spfbl is a spam filtering service
     /// </summary>
     public bool Spfbl { get; set; }
     
     /// <summary>
-    /// Sorbs considers this spam
+    /// True if Sorbs considers mail from this domain or IP to likely contain spam
+    /// Sorbs is a spam and open relay blocking service
     /// </summary>
     public bool Sorbs { get; set; }
     
     /// <summary>
-    /// Abusix considers this spam
+    /// True if Abusix considers mail from this domain or IP to likely contain spam
+    /// Abusix is a network abuse intelligence provider
     /// </summary>
     public bool Abusix { get; set; }
 }
