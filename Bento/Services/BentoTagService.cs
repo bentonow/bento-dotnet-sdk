@@ -75,7 +75,7 @@ public class BentoTagService : IBentoTagService
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
         
-        var payload = new { tag = new { name = request.Name } };
+        var payload = new CreateTagRequest(request);
         return _client.PostAsync<T>("fetch/tags", payload);
     }
 
@@ -92,14 +92,14 @@ public class BentoTagService : IBentoTagService
 
         try
         {
-            var payload = new { tag = new { name = request.Name } };
+            var payload = new CreateTagRequest(request);
             var response = await _client.PostAsync<dynamic>("fetch/tags", payload);
             
             if (!response.Success || response.Data?.data == null)
                 return null;
 
             // Check if data is an array or single object
-            dynamic dataArray = response.Data.data;
+            dynamic dataArray = response!.Data!.data;
             var tagData = dataArray?.FirstOrDefault();
             if (tagData == null)
                 return null;

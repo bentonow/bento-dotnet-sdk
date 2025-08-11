@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Bento.Models;
 
 /// <summary>
@@ -6,4 +8,6 @@ namespace Bento.Models;
 /// Optimized for small amounts of text content to prevent links/XSS/etc inside it.
 /// </summary>
 /// <param name="Content">The content you wish to moderate</param>
-public record ContentModerationRequest(string Content);
+public record ContentModerationRequest(
+    [property: JsonPropertyName("content")] string Content
+);

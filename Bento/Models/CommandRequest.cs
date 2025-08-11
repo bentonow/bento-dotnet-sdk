@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Bento.Models;
 
@@ -14,19 +15,21 @@ namespace Bento.Models;
 /// <param name="Email">Email address of the subscriber to modify (required)</param>
 /// <param name="Query">Query data for the command (optional for some commands). Can be a string for simple values or an object for complex data like add_field</param>
 public record CommandRequest(
-    string Command,
-    string Email,
-    object? Query = null
+    [property: JsonPropertyName("command")] string Command,
+    [property: JsonPropertyName("email")] string Email,
+    [property: JsonPropertyName("query")] object? Query = null
 );
 
 /// <summary>
-/// Batch command request for executing multiple commands at once
+/// Batch command request for executing multiple commands at once.
+/// According to Bento API documentation, commands require "command" array wrapper.
 /// </summary>
 public record BatchCommandRequest
 {
     /// <summary>
     /// Array of commands to execute
     /// </summary>
+    [JsonPropertyName("command")]
     public IEnumerable<CommandRequest> Command { get; init; } = new List<CommandRequest>();
 }
 

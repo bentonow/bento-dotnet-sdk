@@ -69,16 +69,7 @@ public class BentoCommandService : IBentoCommandService
                 throw new ArgumentException("All commands must have valid Email property", nameof(commands));
         }
 
-        var request = new
-        {
-            command = commandsList.Select(c => new
-            {
-                command = c.Command,
-                email = c.Email,
-                query = c.Query
-            })
-        };
-
+        var request = new BatchCommandRequest { Command = commandsList };
         return _client.PostAsync<T>("fetch/commands", request);
     }
     

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Bento.Models;
 
 /// <summary>
@@ -6,4 +8,6 @@ namespace Bento.Models;
 /// Best for US users as it's based on US Census Data.
 /// </summary>
 /// <param name="FullName">Full name of a subscriber or just the first name (works best with US names based on US Census Data)</param>
-public record GenderRequest(string FullName);
+public record GenderRequest(
+    [property: JsonPropertyName("name")] string FullName
+);

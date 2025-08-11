@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Bento.Models;
 
@@ -18,17 +20,25 @@ namespace Bento.Models;
 /// <param name="SendAt">The date and time to send the broadcast at. Required when Approved is true.</param>
 /// <param name="Approved">Whether the broadcast has been approved by Bento and will be sent at the scheduled time.</param>
 public record BroadcastRequest(
-    string Name,
-    string Subject,
-    string Content,
-    string Type,
-    ContactInfo From,
-    string? InclusiveTags = null,
-    string? ExclusiveTags = null,
-    string? SegmentId = null,
-    int? BatchSizePerHour = null,
-    DateTime? SendAt = null,
-    bool? Approved = null
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("subject")] string Subject,
+    [property: JsonPropertyName("content")] string Content,
+    [property: JsonPropertyName("type")] string Type,
+    [property: JsonPropertyName("from")] ContactInfo From,
+    [property: JsonPropertyName("inclusive_tags")] string? InclusiveTags = null,
+    [property: JsonPropertyName("exclusive_tags")] string? ExclusiveTags = null,
+    [property: JsonPropertyName("segment_id")] string? SegmentId = null,
+    [property: JsonPropertyName("batch_size_per_hour")] int? BatchSizePerHour = null,
+    [property: JsonPropertyName("send_at")] DateTime? SendAt = null,
+    [property: JsonPropertyName("approved")] bool? Approved = null
+);
+
+/// <summary>
+/// Wrapper for Create Broadcasts API request.
+/// According to Bento API documentation, broadcasts creation requires "broadcasts" array wrapper.
+/// </summary>
+public record CreateBroadcastsRequest(
+    [property: JsonPropertyName("broadcasts")] IEnumerable<BroadcastRequest> Broadcasts
 );
 
 /// <summary>
@@ -37,6 +47,6 @@ public record BroadcastRequest(
 /// <param name="EmailAddress">Email address of the sender.</param>
 /// <param name="Name">Display name of the sender.</param>
 public record ContactInfo(
-    string EmailAddress,
-    string? Name = null
+    [property: JsonPropertyName("email")] string EmailAddress,
+    [property: JsonPropertyName("name")] string? Name = null
 );

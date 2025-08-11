@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Bento.Models;
 
 /// <summary>
@@ -9,8 +11,8 @@ namespace Bento.Models;
 /// <param name="UserAgent">User agent string (optional)</param>
 /// <param name="IpAddress">User's IP address (optional, returns false for all countries outside of Tier 1)</param>
 public record EmailValidationRequest(
-    string EmailAddress,
-    string? FullName = null,
-    string? UserAgent = null,
-    string? IpAddress = null
+    [property: JsonPropertyName("email")] string EmailAddress,
+    [property: JsonPropertyName("name")] string? FullName = null,
+    [property: JsonPropertyName("user_agent")] string? UserAgent = null,
+    [property: JsonPropertyName("ip")] string? IpAddress = null
 );

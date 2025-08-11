@@ -35,7 +35,7 @@ public class BentoBlacklistService : IBentoBlacklistService
         if (!string.IsNullOrEmpty(request.Domain))
             queryParams.Add($"domain={Uri.EscapeDataString(request.Domain)}");
         if (!string.IsNullOrEmpty(request.IpAddress))
-            queryParams.Add($"ip={Uri.EscapeDataString(request.IpAddress)}");
+            queryParams.Add($"ip_address={Uri.EscapeDataString(request.IpAddress)}");
             
         var query = string.Join("&", queryParams);
         return _client.GetAsync<T>($"experimental/blacklist.json?{query}");

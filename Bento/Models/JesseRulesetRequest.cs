@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Bento.Models;
 
 /// <summary>
@@ -11,17 +13,20 @@ public class JesseRulesetRequest
     /// Email address to validate (required)
     /// Validates email's domain using MX records
     /// </summary>
+    [JsonPropertyName("email")]
     public string EmailAddress { get; set; } = string.Empty;
     
     /// <summary>
     /// Whether to block free email providers (optional)
     /// Set to true to reject emails from free providers like Gmail, Yahoo, etc.
     /// </summary>
+    [JsonPropertyName("block_free_providers")]
     public bool BlockFreeProviders { get; set; }
     
     /// <summary>
     /// Set to true to reduce extremely opinionated checks (optional)
     /// Enables wiggleroom mode to make validation less strict
     /// </summary>
+    [JsonPropertyName("wiggleroom")]
     public bool Wiggleroom { get; set; }
 }

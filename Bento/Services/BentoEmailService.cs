@@ -46,20 +46,7 @@ public class BentoEmailService : IBentoEmailService
     {
         if (emails == null) throw new ArgumentNullException(nameof(emails));
 
-        var emailsList = emails.ToList();
-        var request = new
-        {
-            emails = emailsList.Select(e => new
-            {
-                to = e.To,
-                from = e.From,
-                subject = e.Subject,
-                html_body = e.HtmlBody,
-                transactional = e.Transactional,
-                personalizations = e.Personalizations
-            })
-        };
-
+        var request = new CreateEmailsRequest(emails);
         return _client.PostAsync<T>("batch/emails", request);
     }
 

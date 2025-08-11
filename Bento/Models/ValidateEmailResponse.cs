@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Bento.Models;
 
 /// <summary>
@@ -11,5 +13,6 @@ public class ValidateEmailResponse
     /// True/false flag if the email address is considered valid
     /// Indicates whether the email passed all validation checks
     /// </summary>
+    [JsonPropertyName("valid")]
     public bool Valid { get; set; }
 }

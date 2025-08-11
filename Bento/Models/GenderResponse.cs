@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Bento.Models;
 
 /// <summary>
@@ -12,11 +14,13 @@ public class GenderResponse
     /// The guessed gender based on US Census Data
     /// Possible values include "male", "female", or other gender classifications
     /// </summary>
+    [JsonPropertyName("gender")]
     public string? Gender { get; set; }
     
     /// <summary>
     /// Confidence level of the guess (float value between 0.0 and 1.0)
     /// Always returned - higher values indicate more confident predictions
     /// </summary>
+    [JsonPropertyName("confidence")]
     public float Confidence { get; set; }
 }

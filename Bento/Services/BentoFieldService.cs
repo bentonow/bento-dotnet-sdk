@@ -63,7 +63,7 @@ public class BentoFieldService : IBentoFieldService
         
         field.Validate();
         
-        var request = new { field = new { key = field.Key } };
+        var request = new CreateFieldRequest(field);
         return _client.PostAsync<T>("fetch/fields", request);
     }
 
@@ -80,7 +80,7 @@ public class BentoFieldService : IBentoFieldService
         
         field.Validate();
         
-        var request = new { field = new { key = field.Key } };
+        var request = new CreateFieldRequest(field);
         var response = await _client.PostAsync<FieldResponse>("fetch/fields", request);
         
         if (!response.Success || response.Data == null)

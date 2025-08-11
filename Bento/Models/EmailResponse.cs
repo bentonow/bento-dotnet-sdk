@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Bento.Models;
 
 /// <summary>
@@ -9,5 +11,5 @@ public record EmailResponse(
     /// The count of emails queued for delivery.
     /// Indicates how many emails were successfully accepted for processing.
     /// </summary>
-    int Results
+    [property: JsonPropertyName("results")] int Results
 );

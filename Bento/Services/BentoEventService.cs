@@ -67,17 +67,7 @@ public class BentoEventService : IBentoEventService
     {
         if (events == null) throw new ArgumentNullException(nameof(events));
 
-        var request = new
-        {
-            events = events.Select(e => new
-            {
-                type = e.Type,
-                email = e.Email,
-                fields = e.Fields?.Count > 0 ? e.Fields : null,
-                details = e.Details?.Count > 0 ? e.Details : null
-            })
-        };
-
+        var request = new CreateEventsRequest(events);
         return _client.PostAsync<T>("batch/events", request);
     }
 

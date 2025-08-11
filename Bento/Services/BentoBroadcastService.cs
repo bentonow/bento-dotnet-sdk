@@ -93,28 +93,7 @@ public class BentoBroadcastService : IBentoBroadcastService
         if (!broadcastsList.Any())
             throw new ArgumentException("Broadcasts collection cannot be empty", nameof(broadcasts));
 
-        var request = new
-        {
-            broadcasts = broadcastsList.Select(b => new
-            {
-                name = b.Name,
-                subject = b.Subject,
-                content = b.Content,
-                type = b.Type,
-                from = new
-                {
-                    email = b.From.EmailAddress,
-                    name = b.From.Name
-                },
-                inclusive_tags = b.InclusiveTags,
-                exclusive_tags = b.ExclusiveTags,
-                segment_id = b.SegmentId,
-                batch_size_per_hour = b.BatchSizePerHour,
-                send_at = b.SendAt?.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                approved = b.Approved
-            })
-        };
-
+        var request = new CreateBroadcastsRequest(broadcastsList);
         return _client.PostAsync<T>("batch/broadcasts", request);
     }
 

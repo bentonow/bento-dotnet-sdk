@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Bento.Models;
 
@@ -11,8 +12,16 @@ namespace Bento.Models;
 /// <param name="Fields">Key-value array of fields for the event (optional). Should not be nested</param>
 /// <param name="Details">Key-value array of detailed information (optional). Can be nested for complex data</param>
 public record EventRequest(
-    string Type,
-    string Email,
-    Dictionary<string, object>? Fields = null,
-    Dictionary<string, object>? Details = null
+    [property: JsonPropertyName("type")] string Type,
+    [property: JsonPropertyName("email")] string Email,
+    [property: JsonPropertyName("fields")] Dictionary<string, object>? Fields = null,
+    [property: JsonPropertyName("details")] Dictionary<string, object>? Details = null
+);
+
+/// <summary>
+/// Wrapper for Create Events API request.
+/// According to Bento API documentation, events creation requires "events" array wrapper.
+/// </summary>
+public record CreateEventsRequest(
+    [property: JsonPropertyName("events")] IEnumerable<EventRequest> Events
 );

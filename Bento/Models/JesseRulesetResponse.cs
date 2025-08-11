@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Bento.Models;
 
 /// <summary>
@@ -11,11 +13,13 @@ public class JesseRulesetResponse
     /// True/false flag if the email passes Jesse's strict validation ruleset
     /// False indicates the email failed one or more strict validation rules
     /// </summary>
+    [JsonPropertyName("valid")]
     public bool Valid { get; set; }
     
     /// <summary>
     /// Array of string values describing the issues found with the email
     /// Contains specific reasons for validation failure (can be empty array if valid)
     /// </summary>
+    [JsonPropertyName("reasons")]
     public string[]? Reasons { get; set; }
 }

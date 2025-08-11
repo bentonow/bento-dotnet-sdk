@@ -79,7 +79,35 @@ public class BentoSubscriberService : IBentoSubscriberService
         if (string.IsNullOrWhiteSpace(subscriber.Email))
             throw new ArgumentException("Email is required", nameof(subscriber));
 
-        var request = new { subscriber = new { email = subscriber.Email } };
+        // Transform subscriber to include custom fields as separate properties at the same level
+        var subscriberData = new Dictionary<string, object>
+        {
+            ["email"] = subscriber.Email
+        };
+
+        if (!string.IsNullOrEmpty(subscriber.FirstName))
+            subscriberData["first_name"] = subscriber.FirstName;
+
+        if (!string.IsNullOrEmpty(subscriber.LastName))
+            subscriberData["last_name"] = subscriber.LastName;
+
+        if (subscriber.Tags != null && subscriber.Tags.Any())
+            subscriberData["tags"] = string.Join(",", subscriber.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)));
+
+        if (subscriber.RemoveTags != null && subscriber.RemoveTags.Any())
+            subscriberData["remove_tags"] = string.Join(",", subscriber.RemoveTags.Where(tag => !string.IsNullOrWhiteSpace(tag)));
+
+        // Add custom fields as separate properties at the same level
+        // don't replace this code by simple json serialization
+        if (subscriber.Fields != null)
+        {
+            foreach (var field in subscriber.Fields)
+            {
+                subscriberData[field.Key] = field.Value;
+            }
+        }
+
+        var request = new { subscriber = subscriberData };
         return _client.PostAsync<T>("fetch/subscribers", request);
     }
 
@@ -114,33 +142,39 @@ public class BentoSubscriberService : IBentoSubscriberService
                 throw new ArgumentException("All subscribers must have valid email addresses", nameof(subscribers));
         }
 
-        var request = new
+        // Transform subscribers to include custom fields as separate properties at the same level
+        var subscribersData = subscribersList.Select(s =>
         {
-            subscribers = subscribersList.Select(s => 
+            var subscriberData = new Dictionary<string, object>
             {
-                // Start with basic subscriber properties
-                var subscriberData = new Dictionary<string, object?>
-                {
-                    { "email", s.Email },
-                    { "first_name", s.FirstName },
-                    { "last_name", s.LastName },
-                    { "tags", s.Tags != null ? string.Join(",", s.Tags) : null },
-                    { "remove_tags", s.RemoveTags != null ? string.Join(",", s.RemoveTags) : null }
-                };
+                ["email"] = s.Email
+            };
 
-                // Add custom fields as separate properties at the same level
-                if (s.Fields != null)
+            if (!string.IsNullOrEmpty(s.FirstName))
+                subscriberData["first_name"] = s.FirstName;
+
+            if (!string.IsNullOrEmpty(s.LastName))
+                subscriberData["last_name"] = s.LastName;
+
+            if (s.Tags != null && s.Tags.Any())
+                subscriberData["tags"] = string.Join(",", s.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)));
+
+            if (s.RemoveTags != null && s.RemoveTags.Any())
+                subscriberData["remove_tags"] = string.Join(",", s.RemoveTags.Where(tag => !string.IsNullOrWhiteSpace(tag)));
+
+            // Add custom fields as separate properties at the same level
+            if (s.Fields != null)
+            {
+                foreach (var field in s.Fields)
                 {
-                    foreach (var field in s.Fields)
-                    {
-                        subscriberData[field.Key] = field.Value;
-                    }
+                    subscriberData[field.Key] = field.Value;
                 }
+            }
 
-                return subscriberData;
-            })
-        };
+            return subscriberData;
+        }).ToList();
 
+        var request = new { subscribers = subscribersData };
         return _client.PostAsync<T>("batch/subscribers", request);
     }
 

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Bento.Models;
 
@@ -15,6 +16,7 @@ public record ReportStatsRequest
     /// </summary>
     /// <example>550e8400-e29b-41d4-a716-446655440000</example>
     [Required]
+    [JsonPropertyName("site_uuid")]
     public string SiteUuid { get; init; } = string.Empty;
 
     /// <summary>
@@ -23,5 +25,6 @@ public record ReportStatsRequest
     /// </summary>
     /// <example>456</example>
     [Required]
+    [JsonPropertyName("report_id")]
     public string ReportId { get; init; } = string.Empty;
 }
