@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Bento.Models;
 using Bento.Services;
 
@@ -577,14 +578,26 @@ public class BentoExampleService
     {
         Console.WriteLine("  → Testing tag management...");
 
-        // Get all tags
+        // Get all tags (generic version)
         var getTagsResponse = await _tagService.GetTagsAsync<dynamic>();
-        Console.WriteLine($"  → Get tags: Success={getTagsResponse.Success}");
+        Console.WriteLine($"  → Get tags (generic): Success={getTagsResponse.Success}");
 
-        // Create a new tag
+        // Get all tags (typed version)
+        var tags = await _tagService.GetTagsAsync();
+        Console.WriteLine($"  → Get tags (typed): Count={tags?.Count ?? 0}");
+        if (tags?.Any() == true)
+        {
+            Console.WriteLine($"  → First tag: {tags.First().Attributes?.Name}");
+        }
+
+        // Create a new tag (generic version)
         var tagRequest = new TagRequest("sdk:dotnet");
         var createTagResponse = await _tagService.CreateTagAsync<dynamic>(tagRequest);
-        Console.WriteLine($"  → Create tag 'sdk:dotnet': Success={createTagResponse.Success}");
+        Console.WriteLine($"  → Create tag 'sdk:dotnet' (generic): Success={createTagResponse.Success}");
+
+        // Create a new tag (typed version)
+        var newTag = await _tagService.CreateTagAsync(new TagRequest("sdk:dotnet:typed"));
+        Console.WriteLine($"  → Create tag 'sdk:dotnet:typed' (typed): Success={newTag != null}, Name={newTag?.Attributes?.Name}");
     }
 
     private async Task RunFieldExample()
