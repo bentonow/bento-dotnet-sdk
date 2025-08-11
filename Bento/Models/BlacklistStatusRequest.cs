@@ -12,5 +12,5 @@ namespace Bento.Models;
 /// <param name="IpAddress">IPv4 address to check (e.g., "1.1.1.1")</param>
 public record BlacklistStatusRequest(
     [property: JsonPropertyName("domain")] string? Domain = null,
-    [property: JsonPropertyName("ip_address")] string? IpAddress = null
+    [property: JsonPropertyName("ip")] string? IpAddress = null
 );
