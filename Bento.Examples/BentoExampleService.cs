@@ -605,14 +605,59 @@ public class BentoExampleService
     {
         Console.WriteLine("  → Testing email service...");
 
+        // Example 1: Simple email without personalizations
         var emailRequest = new EmailRequest(
-            From: "Your Bento Author",
+            To: "test@example.com",
+            From: "sender@example.com", 
             Subject: "Test Email from .NET SDK",
             HtmlBody: "<p>Hello from the .NET SDK!</p>",
-            To: "A subscriber email"
+            Transactional: true
         );
 
-        var response = await _emailService.SendEmailAsync<dynamic>(emailRequest);
-        Console.WriteLine($"  → Send email: Success={response.Success}");
+        // Using typed response
+        var typedResponse = await _emailService.SendEmailAsync(emailRequest);
+        Console.WriteLine($"  → Send simple email: Queued emails count={typedResponse.Results}");
+
+        // Example 2: Email with personalizations
+        var personalizedEmailRequest = new EmailRequest(
+            To: "user@example.com",
+            From: "sender@example.com",
+            Subject: "Welcome {{user_name}}!",
+            HtmlBody: "<p>Hello {{user_name}}, welcome to {{company_name}}! Your reset link: {{reset_link}}</p>",
+            Transactional: true,
+            Personalizations: new Dictionary<string, object>
+            {
+                { "user_name", "John Doe" },
+                { "company_name", "Bento" },
+                { "reset_link", "https://example.com/reset/abc123" }
+            }
+        );
+
+        var personalizedResponse = await _emailService.SendEmailAsync(personalizedEmailRequest);
+        Console.WriteLine($"  → Send personalized email: Queued emails count={personalizedResponse.Results}");
+
+        // Example 3: Batch emails
+        var batchEmails = new[]
+        {
+            new EmailRequest(
+                To: "user1@example.com",
+                From: "sender@example.com",
+                Subject: "Batch Email 1",
+                HtmlBody: "<p>This is email 1</p>"
+            ),
+            new EmailRequest(
+                To: "user2@example.com", 
+                From: "sender@example.com",
+                Subject: "Batch Email 2",
+                HtmlBody: "<p>This is email 2</p>"
+            )
+        };
+
+        var batchResponse = await _emailService.SendBatchEmailsAsync(batchEmails);
+        Console.WriteLine($"  → Send batch emails: Queued emails count={batchResponse.Results}");
+
+        // Using generic response for custom handling
+        var genericResponse = await _emailService.SendEmailAsync<dynamic>(emailRequest);
+        Console.WriteLine($"  → Send email (generic): Success={genericResponse.Success}");
     }
 }
