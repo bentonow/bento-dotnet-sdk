@@ -182,18 +182,42 @@ public class BentoExampleService
     {
         Console.WriteLine("\nTesting Blacklist Service:");
 
+        // Check domain and IP
         var request = new BlacklistStatusRequest(
+            Domain: "example.com",
             IpAddress: "1.1.1.1"
         );
 
+        // Generic response
         var response = await _blacklistService.GetBlacklistStatusAsync<dynamic>(request);
         Console.WriteLine($"Blacklist status response: {response.Success}");
+
+        // Typed response with detailed results
+        try
+        {
+            var blacklistResult = await _blacklistService.GetBlacklistStatusAsync(request);
+            Console.WriteLine($"Blacklist check for: {blacklistResult.Query}");
+            Console.WriteLine($"Description: {blacklistResult.Description}");
+            
+            if (blacklistResult.Results != null)
+            {
+                Console.WriteLine($"Spamhaus: {blacklistResult.Results.Spamhaus}");
+                Console.WriteLine($"Just Registered: {blacklistResult.Results.JustRegistered}");
+                Console.WriteLine($"Nordspam: {blacklistResult.Results.Nordspam}");
+                Console.WriteLine($"Abusix: {blacklistResult.Results.Abusix}");
+            }
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"Blacklist check failed: {ex.Message}");
+        }
     }
 
     private async Task RunValidationExample()
     {
         Console.WriteLine("\nTesting Email Validation Service:");
 
+        // Basic email validation
         var request = new EmailValidationRequest(
             EmailAddress: "john@example.com",
             FullName: "John Doe",
@@ -202,6 +226,26 @@ public class BentoExampleService
 
         var response = await _validationService.ValidateEmailAsync<dynamic>(request);
         Console.WriteLine($"Email validation response: {response.Success}");
+
+        // Jesse's ruleset validation
+        var jesseRequest = new JesseRulesetRequest
+        {
+            EmailAddress = "test@gmail.com",
+            BlockFreeProviders = true,
+            Wiggleroom = false
+        };
+        
+        try
+        {
+            var jesseResponse = await _validationService.ValidateEmailWithJesseRulesetAsync(jesseRequest);
+            Console.WriteLine($"Jesse's ruleset validation - Valid: {jesseResponse.Valid}");
+            if (jesseResponse.Reasons != null)
+                Console.WriteLine($"Reasons: {string.Join(", ", jesseResponse.Reasons)}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"Jesse's validation failed: {ex.Message}");
+        }
     }
 
     private async Task RunModerationExample()
