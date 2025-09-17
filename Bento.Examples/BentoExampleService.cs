@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Bento.Models;
 using Bento.Services;
 
@@ -166,34 +169,104 @@ public class BentoExampleService
     
     private async Task RunCommandExample()
     {
-        Console.WriteLine("\nTesting Command Service:");
+        Console.WriteLine("  → Testing command execution...");
 
-        var command = new CommandRequest(
-            Command: "add_tag",
-            Email: "test@example.com",
-            Query: "sdk:dotnet"
-        );
+        // 1. Execute single command (generic response)
+        var addTagCommand = CommandRequestHelper.AddTag("test@example.com", "sdk:dotnet");
+        var singleResponse = await _commandService.ExecuteCommandAsync<dynamic>(addTagCommand);
+        Console.WriteLine($"  → Execute single command (generic): Success={singleResponse.Success}");
 
-        var response = await _commandService.ExecuteCommandAsync<dynamic>(command);
-        Console.WriteLine($"Command execution response: {response.Success}");
+        // 2. Execute single command (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var removeTagCommand = CommandRequestHelper.RemoveTag("test@example.com", "old-tag");
+            var singleTypedResponse = await _commandService.ExecuteCommandAsync(removeTagCommand);
+            Console.WriteLine($"  → Execute single command (typed): Updated subscriber with ID={singleTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Execute single command (typed): Failed - {ex.Message}");
+        }
+
+        // 3. Execute batch commands (generic response)
+        var batchCommands = new[]
+        {
+            CommandRequestHelper.AddField("test@example.com", "test_field", "test_value"),
+            CommandRequestHelper.Subscribe("test@example.com"),
+            CommandRequestHelper.AddTagViaEvent("test@example.com", "via-event-tag")
+        };
+        
+        var batchResponse = await _commandService.ExecuteBatchCommandsAsync<dynamic>(batchCommands);
+        Console.WriteLine($"  → Execute batch commands (generic): Success={batchResponse.Success}");
+
+        // 4. Execute batch commands (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var batchTypedResponse = await _commandService.ExecuteBatchCommandsAsync(batchCommands);
+            Console.WriteLine($"  → Execute batch commands (typed): Updated subscriber with ID={batchTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Execute batch commands (typed): Failed - {ex.Message}");
+        }
+
+        // 5. Demonstrate all command types
+        var allCommandTypes = new[]
+        {
+            CommandRequestHelper.AddTag("test@example.com", "new-tag"),
+            CommandRequestHelper.AddTagViaEvent("test@example.com", "event-tag"),
+            CommandRequestHelper.RemoveTag("test@example.com", "remove-tag"),
+            CommandRequestHelper.AddField("test@example.com", "custom_field", "custom_value"),
+            CommandRequestHelper.RemoveField("test@example.com", "old_field"),
+            CommandRequestHelper.Subscribe("test@example.com"),
+            CommandRequestHelper.Unsubscribe("test@example.com"),
+            CommandRequestHelper.ChangeEmail("test@example.com", "new@example.com")
+        };
+        
+        var allCommandsResponse = await _commandService.ExecuteBatchCommandsAsync<dynamic>(allCommandTypes);
+        Console.WriteLine($"  → Execute all command types: Success={allCommandsResponse.Success}");
     }
 
     private async Task RunBlacklistExample()
     {
         Console.WriteLine("\nTesting Blacklist Service:");
 
+        // Check domain and IP
         var request = new BlacklistStatusRequest(
+            Domain: "example.com",
             IpAddress: "1.1.1.1"
         );
 
+        // Generic response
         var response = await _blacklistService.GetBlacklistStatusAsync<dynamic>(request);
         Console.WriteLine($"Blacklist status response: {response.Success}");
+
+        // Typed response with detailed results
+        try
+        {
+            var blacklistResult = await _blacklistService.GetBlacklistStatusAsync(request);
+            Console.WriteLine($"Blacklist check for: {blacklistResult.Query}");
+            Console.WriteLine($"Description: {blacklistResult.Description}");
+            
+            if (blacklistResult.Results != null)
+            {
+                Console.WriteLine($"Spamhaus: {blacklistResult.Results.Spamhaus}");
+                Console.WriteLine($"Just Registered: {blacklistResult.Results.JustRegistered}");
+                Console.WriteLine($"Nordspam: {blacklistResult.Results.Nordspam}");
+                Console.WriteLine($"Abusix: {blacklistResult.Results.Abusix}");
+            }
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"Blacklist check failed: {ex.Message}");
+        }
     }
 
     private async Task RunValidationExample()
     {
         Console.WriteLine("\nTesting Email Validation Service:");
 
+        // Basic email validation
         var request = new EmailValidationRequest(
             EmailAddress: "john@example.com",
             FullName: "John Doe",
@@ -202,6 +275,26 @@ public class BentoExampleService
 
         var response = await _validationService.ValidateEmailAsync<dynamic>(request);
         Console.WriteLine($"Email validation response: {response.Success}");
+
+        // Jesse's ruleset validation
+        var jesseRequest = new JesseRulesetRequest
+        {
+            EmailAddress = "test@gmail.com",
+            BlockFreeProviders = true,
+            Wiggleroom = false
+        };
+        
+        try
+        {
+            var jesseResponse = await _validationService.ValidateEmailWithJesseRulesetAsync(jesseRequest);
+            Console.WriteLine($"Jesse's ruleset validation - Valid: {jesseResponse.Valid}");
+            if (jesseResponse.Reasons != null)
+                Console.WriteLine($"Reasons: {string.Join(", ", jesseResponse.Reasons)}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"Jesse's validation failed: {ex.Message}");
+        }
     }
 
     private async Task RunModerationExample()
@@ -244,55 +337,129 @@ public class BentoExampleService
     {
         Console.WriteLine("  → Testing broadcast service...");
 
-        // Get all broadcasts
+        // Get all broadcasts using generic method
         var getBroadcastsResponse = await _broadcastService.GetBroadcastsAsync<dynamic>();
-        Console.WriteLine($"  → Get broadcasts: Success={getBroadcastsResponse.Success}");
+        Console.WriteLine($"  → Get broadcasts (generic): Success={getBroadcastsResponse.Success}");
 
-        // Create a new broadcast
+        // Try to get broadcasts using typed method (will fail without valid auth)
+        try 
+        {
+            var typedBroadcasts = await _broadcastService.GetBroadcastsAsync();
+            Console.WriteLine($"  → Get broadcasts (typed): Count={typedBroadcasts.Data?.Length ?? 0}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Get broadcasts (typed): Failed - {ex.Message}");
+        }
+
+        // Test pagination parameters
+        var pagedBroadcasts = await _broadcastService.GetBroadcastsAsync<dynamic>(page: 1);
+        Console.WriteLine($"  → Get broadcasts (page 1): Success={pagedBroadcasts.Success}");
+
+        // Create a new broadcast with all available fields
         var broadcastRequest = new BroadcastRequest(
             Name: "Test Broadcast from .NET SDK",
             Subject: "Test Broadcast Subject",
             Content: "<p>Hello from the .NET SDK Broadcast!</p>",
             Type: "plain",
             From: new ContactInfo(
-                EmailAddress: "Your Author",
-                Name: "Author Name"
+                EmailAddress: "test@example.com",
+                Name: "SDK Test Author"
             ),
-            InclusiveTags: "test",
-            BatchSizePerHour: 1000
+            InclusiveTags: "test,sdk",
+            ExclusiveTags: "exclude",
+            SegmentId: "test_segment",
+            BatchSizePerHour: 1000,
+            SendAt: DateTime.UtcNow.AddHours(1), // Schedule for 1 hour from now
+            Approved: false // Keep as draft for testing
         );
 
+        // Test generic create method
         var createBroadcastResponse = await _broadcastService.CreateBroadcastAsync<dynamic>(broadcastRequest);
-        Console.WriteLine($"  → Create broadcast: Success={createBroadcastResponse.Success}");
+        Console.WriteLine($"  → Create broadcast (generic): Success={createBroadcastResponse.Success}");
+
+        // Test typed create method (will fail without valid auth)
+        try 
+        {
+            var typedCreateResult = await _broadcastService.CreateBroadcastAsync(broadcastRequest);
+            Console.WriteLine($"  → Create broadcast (typed): Queued={typedCreateResult.Results} broadcasts");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Create broadcast (typed): Failed - {ex.Message}");
+        }
+
+        // Test batch broadcast creation
+        var batchBroadcasts = new[]
+        {
+            broadcastRequest,
+            new BroadcastRequest(
+                Name: "Batch Broadcast 2",
+                Subject: "Batch Test 2",
+                Content: "<p>Second batch broadcast</p>",
+                Type: "plain",
+                From: new ContactInfo("test@example.com", "SDK Test")
+            )
+        };
+
+        try 
+        {
+            var batchResult = await _broadcastService.CreateBatchBroadcastsAsync(batchBroadcasts);
+            Console.WriteLine($"  → Create batch broadcasts (typed): Queued={batchResult.Results} broadcasts");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Create batch broadcasts (typed): Failed - {ex.Message}");
+        }
     }
 
     private async Task RunStatsExample()
     {
         Console.WriteLine("\nTesting Stats Service:");
 
-        // Get site stats
-        var siteStatsResponse = await _statsService.GetSiteStatsAsync<dynamic>();
-        Console.WriteLine($"Get site stats response: {siteStatsResponse.Success}");
+        try
+        {
+            // Get site stats
+            var siteStatsRequest = new SiteStatsRequest { SiteUuid = "550e8400-e29b-41d4-a716-446655440000" };
+            var siteStatsResponse = await _statsService.GetSiteStatsAsync<dynamic>(siteStatsRequest);
+            Console.WriteLine($"Get site stats response: {siteStatsResponse.Success}");
 
-        // Get segment stats
-        var segmentStatsResponse = await _statsService.GetSegmentStatsAsync<dynamic>("segment_ID");
-        Console.WriteLine($"Get segment stats response: {segmentStatsResponse.Success}");
+            // Get segment stats
+            var segmentStatsRequest = new SegmentStatsRequest 
+            { 
+                SiteUuid = "550e8400-e29b-41d4-a716-446655440000", 
+                SegmentId = "123" 
+            };
+            var segmentStatsResponse = await _statsService.GetSegmentStatsAsync<dynamic>(segmentStatsRequest);
+            Console.WriteLine($"Get segment stats response: {segmentStatsResponse.Success}");
 
-        // Get report stats
-        var reportStatsResponse = await _statsService.GetReportStatsAsync<dynamic>("report_ID");
-        Console.WriteLine($"Get report stats response: {reportStatsResponse.Success}");
+            // Get report stats
+            var reportStatsRequest = new ReportStatsRequest 
+            { 
+                SiteUuid = "550e8400-e29b-41d4-a716-446655440000", 
+                ReportId = "456" 
+            };
+            var reportStatsResponse = await _statsService.GetReportStatsAsync<dynamic>(reportStatsRequest);
+            Console.WriteLine($"Get report stats response: {reportStatsResponse.Success}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Stats operations failed: {ex.Message}");
+        }
     }
 
     private async Task RunEventExample()
     {
         Console.WriteLine("  → Testing event tracking...");
 
+        // 1. Track single event (generic response)
         var eventRequest = new EventRequest(
-            Type: "DotNet_test_event",
+            Type: "$completed_onboarding",
             Email: "test@example.com",
             Fields: new Dictionary<string, object>
             {
-                { "test_field", "test_value" }
+                { "first_name", "John" },
+                { "last_name", "Doe" }
             },
             Details: new Dictionary<string, object>
             {
@@ -300,19 +467,72 @@ public class BentoExampleService
             }
         );
 
-        var response = await _eventService.TrackEventAsync<dynamic>(eventRequest);
-        Console.WriteLine($"  → Event tracked: Success={response.Success}, Status={response.StatusCode}");
+        var genericResponse = await _eventService.TrackEventAsync<dynamic>(eventRequest);
+        Console.WriteLine($"  → Event tracked (generic): Success={genericResponse.Success}, Status={genericResponse.StatusCode}");
+
+        // 2. Track single event (typed response) - returns EventResponse directly
+        try
+        {
+            var typedResponse = await _eventService.TrackEventAsync(eventRequest);
+            Console.WriteLine($"  → Event tracked (typed): Results={typedResponse.Results}, Failed={typedResponse.Failed}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  → Event tracking failed: {ex.Message}");
+        }
+
+        // 3. Track multiple events in batch
+        var batchEvents = new[]
+        {
+            new EventRequest("$purchase", "buyer1@example.com", 
+                Fields: new Dictionary<string, object> { { "amount", 99.99 } }),
+            new EventRequest("$purchase", "buyer2@example.com", 
+                Fields: new Dictionary<string, object> { { "amount", 149.99 } })
+        };
+
+        try
+        {
+            var batchResponse = await _eventService.TrackEventsAsync(batchEvents);
+            Console.WriteLine($"  → Batch events tracked: Results={batchResponse.Results}, Failed={batchResponse.Failed}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  → Batch event tracking failed: {ex.Message}");
+        }
     }
 
     private async Task RunSubscriberExample()
     {
         Console.WriteLine("  → Testing subscriber management...");
 
-        // Find subscriber
+        // 1. Find subscriber (generic response)
         var findResponse = await _subscriberService.FindSubscriberAsync<dynamic>("test@example.com");
-        Console.WriteLine($"  → Find subscriber: Success={findResponse.Success}");
+        Console.WriteLine($"  → Find subscriber (generic): Success={findResponse.Success}");
 
-        // Create subscriber
+        // 2. Find subscriber (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var findTypedResponse = await _subscriberService.FindSubscriberAsync("test@example.com");
+            Console.WriteLine($"  → Find subscriber (typed): Found subscriber with ID={findTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Find subscriber (typed): Failed - {ex.Message}");
+        }
+
+        // 3. Find subscriber with request object
+        try
+        {
+            var findRequest = new FindSubscriberRequest { Email = "test@example.com" };
+            var findRequestResponse = await _subscriberService.FindSubscriberAsync(findRequest);
+            Console.WriteLine($"  → Find subscriber (request): Found subscriber with ID={findRequestResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Find subscriber (request): Failed - {ex.Message}");
+        }
+
+        // 4. Create subscriber (generic response)
         var subscriberRequest = new SubscriberRequest(
             Email: "test@example.com",
             FirstName: "Test",
@@ -321,9 +541,20 @@ public class BentoExampleService
         );
         
         var createResponse = await _subscriberService.CreateSubscriberAsync<dynamic>(subscriberRequest);
-        Console.WriteLine($"  → Create subscriber: Success={createResponse.Success}");
+        Console.WriteLine($"  → Create subscriber (generic): Success={createResponse.Success}");
 
-        // Import subscribers
+        // 5. Create subscriber (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var createTypedResponse = await _subscriberService.CreateSubscriberAsync(subscriberRequest);
+            Console.WriteLine($"  → Create subscriber (typed): Created subscriber with ID={createTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Create subscriber (typed): Failed - {ex.Message}");
+        }
+
+        // 6. Import subscribers (generic response)
         var subscribers = new List<SubscriberRequest>
         {
             new(
@@ -341,49 +572,202 @@ public class BentoExampleService
         };
         
         var importResponse = await _subscriberService.ImportSubscribersAsync<dynamic>(subscribers);
-        Console.WriteLine($"  → Import {subscribers.Count} subscribers: Success={importResponse.Success}");
+        Console.WriteLine($"  → Import {subscribers.Count} subscribers (generic): Success={importResponse.Success}");
+
+        // 7. Import subscribers (typed response) - returns ImportSubscribersResponse directly
+        try
+        {
+            var importTypedResponse = await _subscriberService.ImportSubscribersAsync(subscribers);
+            Console.WriteLine($"  → Import {subscribers.Count} subscribers (typed): Processed {importTypedResponse.Result} subscribers");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Import {subscribers.Count} subscribers (typed): Failed - {ex.Message}");
+        }
+
+        // 8. Search subscribers (Enterprise feature)
+        var searchRequest = new SearchSubscribersRequest
+        {
+            Page = 1,
+            CreatedAt = new DateFilter { Gt = DateTime.UtcNow.AddDays(-30).ToString("yyyy-MM-ddTHH:mm:ss.fffZ") }
+        };
+        
+        var searchResponse = await _subscriberService.SearchSubscribersAsync<dynamic>(searchRequest);
+        Console.WriteLine($"  → Search subscribers (generic): Success={searchResponse.Success}");
+
+        // 9. Search subscribers (typed response) - returns SearchSubscribersResponse directly
+        try
+        {
+            var searchTypedResponse = await _subscriberService.SearchSubscribersAsync(searchRequest);
+            Console.WriteLine($"  → Search subscribers (typed): Found {searchTypedResponse.Data?.Count() ?? 0} subscribers");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Search subscribers (typed): Failed - {ex.Message}");
+        }
+
+        // 10. Run single command (add tag)
+        var addTagCommand = CommandRequestHelper.AddTag("test@example.com", "new-tag");
+        var commandResponse = await _subscriberService.RunCommandAsync<dynamic>(addTagCommand);
+        Console.WriteLine($"  → Run add tag command (generic): Success={commandResponse.Success}");
+
+        // 11. Run single command (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var removeTagCommand = CommandRequestHelper.RemoveTag("test@example.com", "old-tag");
+            var commandTypedResponse = await _subscriberService.RunCommandAsync(removeTagCommand);
+            Console.WriteLine($"  → Run remove tag command (typed): Updated subscriber with ID={commandTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Run remove tag command (typed): Failed - {ex.Message}");
+        }
+
+        // 12. Run multiple commands
+        var batchCommands = new[]
+        {
+            CommandRequestHelper.AddField("test@example.com", "test_field", "test_value"),
+            CommandRequestHelper.Subscribe("test@example.com"),
+            CommandRequestHelper.AddTagViaEvent("test@example.com", "via-event-tag")
+        };
+        
+        var batchResponse = await _subscriberService.RunCommandsAsync<dynamic>(batchCommands);
+        Console.WriteLine($"  → Run batch commands (generic): Success={batchResponse.Success}");
+
+        // 13. Run multiple commands (typed response) - returns SubscriberResponse directly
+        try
+        {
+            var batchTypedResponse = await _subscriberService.RunCommandsAsync(batchCommands);
+            Console.WriteLine($"  → Run batch commands (typed): Updated subscriber with ID={batchTypedResponse.Id}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Run batch commands (typed): Failed - {ex.Message}");
+        }
     }
 
     private async Task RunTagExample()
     {
         Console.WriteLine("  → Testing tag management...");
 
-        // Get all tags
+        // Get all tags (generic version)
         var getTagsResponse = await _tagService.GetTagsAsync<dynamic>();
-        Console.WriteLine($"  → Get tags: Success={getTagsResponse.Success}");
+        Console.WriteLine($"  → Get tags (generic): Success={getTagsResponse.Success}");
 
-        // Create a new tag
+        // Get all tags (typed version)
+        var tags = await _tagService.GetTagsAsync();
+        Console.WriteLine($"  → Get tags (typed): Count={tags?.Count ?? 0}");
+        if (tags?.Any() == true)
+        {
+            Console.WriteLine($"  → First tag: {tags.First().Attributes?.Name}");
+        }
+
+        // Create a new tag (generic version)
         var tagRequest = new TagRequest("sdk:dotnet");
         var createTagResponse = await _tagService.CreateTagAsync<dynamic>(tagRequest);
-        Console.WriteLine($"  → Create tag 'sdk:dotnet': Success={createTagResponse.Success}");
+        Console.WriteLine($"  → Create tag 'sdk:dotnet' (generic): Success={createTagResponse.Success}");
+
+        // Create a new tag (typed version)
+        var newTag = await _tagService.CreateTagAsync(new TagRequest("sdk:dotnet:typed"));
+        Console.WriteLine($"  → Create tag 'sdk:dotnet:typed' (typed): Success={newTag != null}, Name={newTag?.Attributes?.Name}");
     }
 
     private async Task RunFieldExample()
     {
         Console.WriteLine("  → Testing field management...");
 
-        // Get all fields
+        // 1. Get all fields (generic response)
         var getFieldsResponse = await _fieldService.GetFieldsAsync<dynamic>();
-        Console.WriteLine($"  → Get fields: Success={getFieldsResponse.Success}");
+        Console.WriteLine($"  → Get fields (generic): Success={getFieldsResponse.Success}");
 
-        // Create a new field
+        // 2. Get all fields (typed response) - returns FieldsResponse directly
+        try
+        {
+            var fieldsResponse = await _fieldService.GetFieldsAsync();
+            var fieldsCount = fieldsResponse.Data?.Length ?? 0;
+            Console.WriteLine($"  → Get fields (typed): Found {fieldsCount} fields");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Get fields (typed): Failed - {ex.Message}");
+        }
+
+        // 3. Create a new field (generic response)
         var fieldRequest = new FieldRequest("dotnet_test_field");
         var createFieldResponse = await _fieldService.CreateFieldAsync<dynamic>(fieldRequest);
-        Console.WriteLine($"  → Create field 'dotnet_test_field': Success={createFieldResponse.Success}");
+        Console.WriteLine($"  → Create field 'dotnet_test_field' (generic): Success={createFieldResponse.Success}");
+
+        // 4. Create a new field (typed response) - returns FieldResponse directly
+        try
+        {
+            var uniqueFieldKey = $"dotnet_typed_field_{DateTime.Now.Ticks}";
+            var typedFieldRequest = new FieldRequest(uniqueFieldKey);
+            var newField = await _fieldService.CreateFieldAsync(typedFieldRequest);
+            Console.WriteLine($"  → Create field '{uniqueFieldKey}' (typed): Success={newField != null}, Key={newField?.Attributes?.Key}");
+        }
+        catch (BentoException ex)
+        {
+            Console.WriteLine($"  → Create field (typed): Failed - {ex.Message}");
+        }
     }
 
     private async Task RunEmailExample()
     {
         Console.WriteLine("  → Testing email service...");
 
+        // Example 1: Simple email without personalizations
         var emailRequest = new EmailRequest(
-            From: "Your Bento Author",
+            To: "test@example.com",
+            From: "sender@example.com", 
             Subject: "Test Email from .NET SDK",
             HtmlBody: "<p>Hello from the .NET SDK!</p>",
-            To: "A subscriber email"
+            Transactional: true
         );
 
-        var response = await _emailService.SendEmailAsync<dynamic>(emailRequest);
-        Console.WriteLine($"  → Send email: Success={response.Success}");
+        // Using typed response
+        var typedResponse = await _emailService.SendEmailAsync(emailRequest);
+        Console.WriteLine($"  → Send simple email: Queued emails count={typedResponse.Results}");
+
+        // Example 2: Email with personalizations
+        var personalizedEmailRequest = new EmailRequest(
+            To: "user@example.com",
+            From: "sender@example.com",
+            Subject: "Welcome {{user_name}}!",
+            HtmlBody: "<p>Hello {{user_name}}, welcome to {{company_name}}! Your reset link: {{reset_link}}</p>",
+            Transactional: true,
+            Personalizations: new Dictionary<string, object>
+            {
+                { "user_name", "John Doe" },
+                { "company_name", "Bento" },
+                { "reset_link", "https://example.com/reset/abc123" }
+            }
+        );
+
+        var personalizedResponse = await _emailService.SendEmailAsync(personalizedEmailRequest);
+        Console.WriteLine($"  → Send personalized email: Queued emails count={personalizedResponse.Results}");
+
+        // Example 3: Batch emails
+        var batchEmails = new[]
+        {
+            new EmailRequest(
+                To: "user1@example.com",
+                From: "sender@example.com",
+                Subject: "Batch Email 1",
+                HtmlBody: "<p>This is email 1</p>"
+            ),
+            new EmailRequest(
+                To: "user2@example.com", 
+                From: "sender@example.com",
+                Subject: "Batch Email 2",
+                HtmlBody: "<p>This is email 2</p>"
+            )
+        };
+
+        var batchResponse = await _emailService.SendBatchEmailsAsync(batchEmails);
+        Console.WriteLine($"  → Send batch emails: Queued emails count={batchResponse.Results}");
+
+        // Using generic response for custom handling
+        var genericResponse = await _emailService.SendEmailAsync<dynamic>(emailRequest);
+        Console.WriteLine($"  → Send email (generic): Success={genericResponse.Success}");
     }
 }
